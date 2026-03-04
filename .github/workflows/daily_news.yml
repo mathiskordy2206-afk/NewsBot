@@ -1,0 +1,51 @@
+name: "📰 Daily Newsletter"
+
+on:
+  schedule:
+    # Jeden Tag um 07:00 UTC (= 08:00 MEZ)
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    # Manueller Trigger zum Testen
+    inputs:
+      output:
+        description: "Ausgabekanal"
+        required: false
+        default: "github"
+        type: choice
+        options:
+          - github
+          - email
+          - both
+          - stdout
+
+jobs:
+  generate-newsletter:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐍 Python einrichten"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: "📦 Dependencies installieren"
+        run: pip install -r requirements.txt
+
+      - name: "🚀 Newsletter generieren"
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        run: |
+          python newsletter.py --output ${{ github.event.inputs.output || 'github' }}

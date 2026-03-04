@@ -1,0 +1,80 @@
+# ==============================================================================
+# NewsBot – RSS Feed Katalog
+# ==============================================================================
+# Füge hier neue Feeds hinzu oder entferne bestehende.
+# Jeder Feed hat: name, url, category, priority (1=hoch, 3=niedrig)
+# Kategorien: weltgeschehen, wirtschaft, finanzen
+
+feeds:
+  # ─── Weltgeschehen ──────────────────────────────────────────────────────
+  - name: "Reuters Top News"
+    url: "https://news.google.com/rss/search?q=site:reuters.com+world&hl=en"
+    category: "weltgeschehen"
+    priority: 1
+
+  - name: "BBC World"
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    category: "weltgeschehen"
+    priority: 1
+
+  - name: "Tagesschau"
+    url: "https://www.tagesschau.de/index~rss2.xml"
+    category: "weltgeschehen"
+    priority: 2
+
+  - name: "Al Jazeera"
+    url: "https://www.aljazeera.com/xml/rss/all.xml"
+    category: "weltgeschehen"
+    priority: 2
+
+  # ─── Wirtschaft ─────────────────────────────────────────────────────────
+  - name: "Reuters Business"
+    url: "https://news.google.com/rss/search?q=site:reuters.com+business&hl=en"
+    category: "wirtschaft"
+    priority: 1
+
+  - name: "Handelsblatt"
+    url: "https://news.google.com/rss/search?q=site:handelsblatt.com&hl=de"
+    category: "wirtschaft"
+    priority: 1
+
+  - name: "Financial Times"
+    url: "https://www.ft.com/rss/home"
+    category: "wirtschaft"
+    priority: 1
+
+  - name: "CNBC Top News"
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+    category: "wirtschaft"
+    priority: 2
+
+  - name: "MarketWatch Top Stories"
+    url: "https://feeds.marketwatch.com/marketwatch/topstories/"
+    category: "wirtschaft"
+    priority: 2
+
+  # ─── Banken & Finanzen ──────────────────────────────────────────────────
+  - name: "Bloomberg Markets"
+    url: "https://feeds.bloomberg.com/markets/news.rss"
+    category: "finanzen"
+    priority: 1
+
+  - name: "FT Markets"
+    url: "https://www.ft.com/rss/markets"
+    category: "finanzen"
+    priority: 1
+
+  - name: "Reuters Finance"
+    url: "https://news.google.com/rss/search?q=site:reuters.com+finance+markets&hl=en"
+    category: "finanzen"
+    priority: 1
+
+  - name: "ECB Press Releases"
+    url: "https://www.ecb.europa.eu/rss/press.html"
+    category: "finanzen"
+    priority: 2
+
+  - name: "Yahoo Finance"
+    url: "https://finance.yahoo.com/news/rssindex"
+    category: "finanzen"
+    priority: 2
