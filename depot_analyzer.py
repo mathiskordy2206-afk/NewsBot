@@ -87,13 +87,20 @@ def call_gemini(prompt: str, api_key: str) -> str:
         return ""
 
 def analyze_portfolio(portfolio_data, config, api_key):
-    """Lässt Gemini das Portfolio analysieren."""
+    """Lässt Gemini das Portfolio analysieren und baut eine Übersicht."""
     log.info("🧠 Gemini analysiert das Portfolio...")
+    
+    total_start_value = 0.0
+    total_current_value = 0.0
+    has_shares = False
+    
+    best_stock = {"name": "N/A", "perf": -9999.0}
+    worst_stock = {"name": "N/A", "perf": 9999.0}
     
     portfolio_text = "MEIN DEPOT (Performance der letzten 7 Tage):\n"
     for item in config.get("portfolio", []):
         sym = item["symbol"]
-        if sym in portfolio_data and "current_price" in portfolio_data[sym]:
+        if sym in portfolio_data and "current_price" in portfolio_data[sym] and "start_price" in portfolio_data[sym]:
             d = portfolio_data[sym]
             buy_in = item.get("buy_in", "N/A")
             shares = item.get("shares", 0)
@@ -102,6 +109,17 @@ def analyze_portfolio(portfolio_data, config, api_key):
             perf = d['performance_1w_pct']
             if sym == "OUST":
                 perf = perf * 2  # 2x Hebel
+                
+            if perf > best_stock["perf"]:
+                best_stock = {"name": item["name"], "perf": perf}
+            if perf < worst_stock["perf"]:
+                worst_stock = {"name": item["name"], "perf": perf}
+                
+            # Wöchentliche Performance für das Gesamtdepot berechnen
+            if shares > 0:
+                has_shares = True
+                total_current_value += d['current_price'] * float(shares)
+                total_start_value += d['start_price'] * float(shares)
             
             sign = "+" if perf > 0 else ""
             portfolio_text += f"- {item['name']} ({sym}): Letzter Preis {d['current_price']} | 1-Wochen-Perf: {sign}{round(perf, 2)}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
@@ -130,19 +148,38 @@ def analyze_portfolio(portfolio_data, config, api_key):
                 else:
                     portfolio_text += f"  (Gesamt-Performance seit Kauf bei {buy_in}: {total_sign}{total_perf}%)\n"
 
+    # HTML Summary generieren
+    summary_html = ""
+    if has_shares and total_start_value > 0:
+        total_perf_pct = ((total_current_value - total_start_value) / total_start_value) * 100
+        total_profit = total_current_value - total_start_value
+        sign = "+" if total_profit > 0 else ""
+        color = "#10b981" if total_profit > 0 else "#ef4444"
+        
+        summary_html = f"""
+        <div style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:25px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin:0 0 15px 0;font-size:15px;color:#0f172a;text-transform:uppercase;letter-spacing:1px;">Wochen-Überblick</h3>
+            <p style="margin:0 0 8px 0;font-size:15px;color:#475569;"><strong>Gesamt-Entwicklung (1W):</strong> <span style="color:{color};font-weight:bold;font-size:16px;">{sign}{round(total_perf_pct, 2)}% ({sign}{round(total_profit, 2)} USD)</span></p>
+            <p style="margin:0 0 8px 0;font-size:14px;color:#475569;"><strong>🚀 Top der Woche:</strong> {best_stock['name']} <span style="color:#10b981;">(+{round(best_stock['perf'], 2)}%)</span></p>
+            <p style="margin:0;font-size:14px;color:#475569;"><strong>🔻 Flop der Woche:</strong> {worst_stock['name']} <span style="color:#ef4444;">({round(worst_stock['perf'], 2)}%)</span></p>
+        </div>
+        """
+
     prompt = f"""Analysiere die Performance meines Aktiendepots für die letzte Woche auf Deutsch.
 
 {portfolio_text}
 
 AUFGABE:
-1. Erkläre in 1-2 kurzen Absätzen den generellen Markttrend dieser Woche, der mein Portfolio beeinflusst hat.
-2. Nimm dir meine Top-Performer und Flop-Performer (wenn vorhanden) vor und erkläre faktenbasiert am Unternehmen, *warum* der Kurs gestiegen oder gefallen ist.
-3. Gib für mein bestehendes Lineup klare "Halten" oder "Verkaufen" Impulse. Nenne insbesondere Verkaufs-Risiken, falls Unternehmen fundamental schwächeln.
+1. Erkläre in 1-2 kurzen Absätzen den generellen Markttrend dieser Woche.
+2. HANDLUNGSEMPFEHLUNGEN (WICHTIG!): Gehe meine Aktien durch, aber erwähne NUR die Aktien, bei denen ich aktuell VORSICHTIG sein sollte, die ich VERKAUFEN sollte (z.B. Gewinnmitnahmen/Bewertung zu hoch) oder bei denen ich NACHKAUFEN sollte. 
+Gib zu diesen handverlesenen Titeln eine knappe Begründung.
+-> IGNORIERE alle Aktien komplett, bei denen die Empfehlung ohnehin nur "Halten" lautet. Zeige mir ausschließlich die "Action Items"!
 
 Formatiere dein Ergebnis als sauberes HTML, das ich direkt in eine E-Mail als Body einbauen kann. Nutze <h3> und <p> Tags. Keine ```html Codeblöcke, nur das pure HTML!
 Nutze keine komplexen CSS-Klassen, nur maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
 """
-    return call_gemini(prompt, api_key)
+    ai_html = call_gemini(prompt, api_key)
+    return summary_html + "\n" + ai_html
 
 def scout_opportunities(watchlist_data, config, api_key):
     """Lässt Gemini neue, unentdeckte Kauftipps generieren."""
