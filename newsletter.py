@@ -654,8 +654,8 @@ def build_newsletter_html(
         wirtschaft_html += f"""
         <tr>
             <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                <p style="margin:0 0 4px 0;font-size:15px;line-height:1.4;"><strong>{title_html}</strong> - <span style="color:#475569;">{summary}</span></p>
-                <p style="margin:0;font-size:12px;color:#94a3b8;font-weight:bold;">{source.upper()}</p>
+                <p style="margin:0 0 6px 0;font-size:15px;line-height:1.4;"><strong>{title_html}</strong> - <span style="color:#475569;">{summary}</span></p>
+                <p style="margin:0;font-size:13px;">{short_source(link, source.upper())}</p>
             </td>
         </tr>"""
 
