@@ -802,7 +802,7 @@ def send_email(
 
     msg = MIMEMultipart("alternative")
     # Einfacher, sauberer Betreff
-    msg["Subject"] = f"Newsletter - {date_str}"
+    msg["Subject"] = f"Newsletter - {date_str} - NewsBot"
     msg["From"] = email_address
     msg["To"] = email_recipient
 
