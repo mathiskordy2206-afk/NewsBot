@@ -208,7 +208,7 @@ def process_with_gemini(articles: list[dict], api_key: str) -> dict:
     for cat, cat_articles in by_category.items():
         article_text += f"\n=== {cat.upper()} ===\n"
         for a in cat_articles[:15]:
-            article_text += f"- [{a['source']}] {a['title']}\n  {a['summary'][:200]}\n"
+            article_text += f"- [{a['source']}] {a['title']}\n  URL: {a['link']}\n  {a['summary'][:200]}\n"
 
     prompt = f"""Du bist ein erfahrener Finanzjournalist. Analysiere die folgenden Nachrichtenartikel
 und erstelle einen strukturierten Newsletter auf Deutsch.
