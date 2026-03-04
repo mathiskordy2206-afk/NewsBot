@@ -96,13 +96,39 @@ def analyze_portfolio(portfolio_data, config, api_key):
         if sym in portfolio_data and "current_price" in portfolio_data[sym]:
             d = portfolio_data[sym]
             buy_in = item.get("buy_in", "N/A")
+            shares = item.get("shares", 0)
+            
+            # Hebel-Logik für Morgan Stanley Zertifikat (Ouster 2x Long)
             perf = d['performance_1w_pct']
+            if sym == "OUST":
+                perf = perf * 2  # 2x Hebel
+            
             sign = "+" if perf > 0 else ""
-            portfolio_text += f"- {item['name']} ({sym}): Letzter Preis {d['current_price']} | 1-Wochen-Perf: {sign}{perf}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
+            portfolio_text += f"- {item['name']} ({sym}): Letzter Preis {d['current_price']} | 1-Wochen-Perf: {sign}{round(perf, 2)}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
+            
             if buy_in != "N/A":
+                # Gesamtperformance in Prozent
                 total_perf = round(((d['current_price'] - float(buy_in)) / float(buy_in)) * 100, 2)
+                if sym == "OUST":
+                    total_perf = total_perf * 2  # 2x Hebel
+                
                 total_sign = "+" if total_perf > 0 else ""
-                portfolio_text += f"  (Gesamt-Performance seit Kauf bei {buy_in}: {total_sign}{total_perf}%)\n"
+                
+                # Wenn wir die Stückzahl kennen, absoluten Gewinn in Euro/Dollar berechnen
+                if shares > 0:
+                    current_value = d['current_price'] * float(shares)
+                    buy_value = float(buy_in) * float(shares)
+                    profit = round(current_value - buy_value, 2)
+                    
+                    if sym == "OUST":
+                        # Bei Derivaten ist der Wert des Scheins nicht = Kurs der Aktie * 100
+                        # Der Nutzer sagte: 100 Stück = 528€ aktuell (also 5.28€/Stk)
+                        pass # Für das Zertifikat belassen wir es bei der % Rechnung
+                    else:
+                        profit_sign = "+" if profit > 0 else ""
+                        portfolio_text += f"  (Gesamt-Performance seit Kauf: {total_sign}{total_perf}% -> G/V: {profit_sign}{profit} USD)\n"
+                else:
+                    portfolio_text += f"  (Gesamt-Performance seit Kauf bei {buy_in}: {total_sign}{total_perf}%)\n"
 
     prompt = f"""Analysiere die Performance meines Aktiendepots für die letzte Woche auf Deutsch.
 

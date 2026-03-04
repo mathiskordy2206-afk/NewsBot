@@ -19,6 +19,16 @@ portfolio:
     name: "Nvidia Corp."
     buy_in: 400.00
 
+  - symbol: "AMZN"
+    name: "Amazon.com Inc."
+    buy_in: 180.00
+    shares: 6
+
+  - symbol: "OUST"
+    name: "Ouster Inc. (Basiswert für 2x Long Morgan Stanley)"
+    buy_in: 5.28 # 528 € / 100 Stück
+    shares: 100
+
 watchlist:
   - symbol: "PLTR"
     name: "Palantir Technologies"
