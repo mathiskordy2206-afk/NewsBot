@@ -69,26 +69,26 @@ def fetch_market_data(symbols):
 
 # ─── 2. KI-Analyse ────────────────────────────────────────────────────────────
 
-def call_claude(prompt: str, api_key: str) -> str:
-    """Ruft die Anthropic Claude API auf (Modell Opus für höchste Qualität)."""
+def call_gemini(prompt: str, api_key: str) -> str:
+    """Ruft die Gemini API auf (google.generativeai SDK)."""
     try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=api_key)
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
         
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20240620", # Sonnet 3.5 ist besser und schneller als Opus
-            max_tokens=4000,
-            system="Du bist ein hochkarätiger, professioneller Portfolio-Manager und Investment-Analyst. Du erklärst komplexe Marktbewegungen präzise, quantitativ belegt und dennoch verständlich.",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.content[0].text
+        # System instructions parameter is supported in newer versions,
+        # but prepend to prompt for compatibility
+        full_prompt = "Du bist ein hochkarätiger, professioneller Portfolio-Manager und Investment-Analyst. Du erklärst komplexe Marktbewegungen präzise, quantitativ belegt und dennoch verständlich.\n\n" + prompt
+        
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(full_prompt)
+        return response.text
     except Exception as e:
-        log.error(f"❌ Claude API Fehler: {e}")
+        log.error(f"❌ Gemini API Fehler: {e}")
         return ""
 
 def analyze_portfolio(portfolio_data, config, api_key):
-    """Lässt Claude das Portfolio analysieren."""
-    log.info("🧠 Claude analysiert das Portfolio...")
+    """Lässt Gemini das Portfolio analysieren."""
+    log.info("🧠 Gemini analysiert das Portfolio...")
     
     portfolio_text = "MEIN DEPOT (Performance der letzten 7 Tage):\n"
     for item in config.get("portfolio", []):
@@ -116,11 +116,11 @@ AUFGABE:
 Formatiere dein Ergebnis als sauberes HTML, das ich direkt in eine E-Mail als Body einbauen kann. Nutze <h3> und <p> Tags. Keine ```html Codeblöcke, nur das pure HTML!
 Nutze keine komplexen CSS-Klassen, nur maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
 """
-    return call_claude(prompt, api_key)
+    return call_gemini(prompt, api_key)
 
 def scout_opportunities(watchlist_data, config, api_key):
-    """Lässt Claude neue, unentdeckte Kauftipps generieren."""
-    log.info("🎯 Claude sucht nach neuen Kaufchancen...")
+    """Lässt Gemini neue, unentdeckte Kauftipps generieren."""
+    log.info("🎯 Gemini sucht nach neuen Kaufchancen...")
     
     watch_text = "MEINE WATCHLIST:\n"
     for item in config.get("watchlist", []):
@@ -143,7 +143,7 @@ Für jede der 3 Empfehlungen:
 
 Formatiere dein Ergebnis als sauberes HTML, das ich direkt in eine E-Mail als Body einbauen kann. Nutze <h3> und <p> Tags. Keine ```html Codeblöcke, nur das pure HTML!
 """
-    return call_claude(prompt, api_key)
+    return call_gemini(prompt, api_key)
 
 # ─── 3. E-Mail Versand ────────────────────────────────────────────────────────
 
@@ -202,7 +202,7 @@ def build_email_html(portfolio_html, opportunities_html):
                 <tr>
                     <td bgcolor="#f8fafc" style="padding:25px 30px;border-top:1px solid #e2e8f0;text-align:center;">
                         <p style="margin:0;font-size:12px;color:#94a3b8;">
-                            Powered by DepotBot &bull; Claude 3.5 Sonnet &bull; yfinance API
+                            Powered by DepotBot &bull; Gemini 2.5 Flash &bull; yfinance API
                         </p>
                     </td>
                 </tr>
@@ -248,10 +248,10 @@ def send_email(html_content, smtp_server="smtp.gmail.com", smtp_port=587):
 # ─── 4. Main Workflow ─────────────────────────────────────────────────────────
 
 def main():
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
     
-    if not anthropic_key:
-        log.error("❌ ANTHROPIC_API_KEY ist nicht gesetzt!")
+    if not gemini_key:
+        log.error("❌ GEMINI_API_KEY ist nicht gesetzt!")
         return
 
     config = load_portfolio()
@@ -265,10 +265,10 @@ def main():
     watchlist_data = fetch_market_data(watchlist_symbols)
     
     # KI Analyse
-    portfolio_html = analyze_portfolio(portfolio_data, config, anthropic_key)
-    opportunities_html = scout_opportunities(watchlist_data, config, anthropic_key)
+    portfolio_html = analyze_portfolio(portfolio_data, config, gemini_key)
+    opportunities_html = scout_opportunities(watchlist_data, config, gemini_key)
     
-    # HTML bereinigen (falls Claude den Codeblock-Markdown mitschickt)
+    # HTML bereinigen (falls Gemini den Codeblock-Markdown mitschickt)
     portfolio_html = portfolio_html.replace("```html", "").replace("```", "").strip()
     opportunities_html = opportunities_html.replace("```html", "").replace("```", "").strip()
     
