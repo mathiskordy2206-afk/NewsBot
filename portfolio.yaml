@@ -44,6 +44,23 @@ portfolio:
     name: "Stellar (Krypto)"
     shares: 1931.00
 
+  # ETFs aus dem Depot
+  - symbol: "SNAW.DE"
+    name: "iShares MSCI World Screened ETF"
+    shares: 102.19
+
+  - symbol: "XAIX.DE"
+    name: "Xtrackers AI & Big Data ETF"
+    shares: 5.94
+
+  - symbol: "SPYA.DE"
+    name: "SPDR MSCI EM Asia ETF"
+    shares: 3.70
+
+  - symbol: "CQQQ.SW"
+    name: "UBS Solactive China Technology ETF"
+    shares: 181.73
+
   - symbol: "OUST"
     name: "Ouster Inc. (Basiswert für 2x Long)"
     shares: 100
