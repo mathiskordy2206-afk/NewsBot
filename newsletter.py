@@ -514,8 +514,195 @@ def post_github_issue(markdown: str, repo: str, token: str) -> bool:
         return False
 
 
-def send_email(markdown: str, smtp_server: str = "smtp.gmail.com", smtp_port: int = 587) -> bool:
-    """Sendet den Newsletter per E-Mail."""
+def build_newsletter_html(
+    gemini_result: dict,
+    claude_analysis: str,
+    market_outlook: str,
+) -> str:
+    """Baut den Newsletter als professionelle HTML-E-Mail."""
+    now = datetime.now(timezone(timedelta(hours=1)))
+    date_str = now.strftime("%d.%m.%Y")
+    months_de = {
+        "January": "Januar", "February": "Februar", "March": "März",
+        "April": "April", "May": "Mai", "June": "Juni",
+        "July": "Juli", "August": "August", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Dezember",
+    }
+    long_date = now.strftime("%d. %B %Y")
+    for en, de in months_de.items():
+        long_date = long_date.replace(en, de)
+    weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+    weekday = weekdays_de[now.weekday()]
+
+    sentiment = gemini_result.get("market_sentiment", "neutral")
+    sentiment_config = {
+        "bullish": {"label": "Bullish", "color": "#10b981", "bg": "#ecfdf5", "icon": "🟢"},
+        "bearish": {"label": "Bearish", "color": "#ef4444", "bg": "#fef2f2", "icon": "🔴"},
+        "neutral": {"label": "Neutral", "color": "#f59e0b", "bg": "#fffbeb", "icon": "🟡"},
+    }.get(sentiment, {"label": "Neutral", "color": "#f59e0b", "bg": "#fffbeb", "icon": "🟡"})
+
+    def short_source(link, source_name):
+        """Erzeugt einen kurzen, klickbaren Quellen-Link."""
+        if link:
+            return f'<a href="{link}" style="color:#6366f1;text-decoration:none;font-weight:500;">{source_name} →</a>'
+        return f'<span style="color:#94a3b8;">{source_name}</span>'
+
+    # ── Headlines bauen ──
+    headlines_html = ""
+    for i, h in enumerate(gemini_result.get("headlines", []), 1):
+        title = h["title"]
+        link = h.get("link", "")
+        summary = h.get("summary", "")
+        source = h.get("source", "")
+        title_html = f'<a href="{link}" style="color:#1e293b;text-decoration:none;">{title}</a>' if link else title
+        headlines_html += f"""
+        <tr>
+            <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+                    <td style="width:32px;vertical-align:top;padding-top:2px;">
+                        <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-align:center;line-height:26px;font-size:12px;font-weight:700;">{i}</span>
+                    </td>
+                    <td style="padding-left:12px;">
+                        <div style="font-size:15px;font-weight:600;color:#1e293b;line-height:1.4;">{title_html}</div>
+                        <div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.5;">{summary}</div>
+                        <div style="margin-top:6px;">{short_source(link, source)}</div>
+                    </td>
+                </tr></table>
+            </td>
+        </tr>"""
+
+    # ── Deep Dives bauen ──
+    deep_dives_html = ""
+    for dd in gemini_result.get("deep_dives", []):
+        title = dd["title"]
+        link = dd.get("link", "")
+        analysis = dd.get("analysis", dd.get("summary", ""))
+        source = dd.get("source", "")
+        title_html = f'<a href="{link}" style="color:#1e293b;text-decoration:none;">{title}</a>' if link else title
+        deep_dives_html += f"""
+        <div style="background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:12px;border-left:4px solid #6366f1;">
+            <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;">{title_html}</div>
+            <div style="font-size:14px;color:#475569;line-height:1.6;">{analysis}</div>
+            <div style="margin-top:10px;">{short_source(link, source)}</div>
+        </div>"""
+
+    if not deep_dives_html:
+        deep_dives_html = '<div style="color:#94a3b8;font-style:italic;padding:16px;">Heute keine signifikanten Finanz-Themen für einen Deep Dive.</div>'
+
+    # ── Claude Analysis ──
+    claude_html = ""
+    if claude_analysis:
+        claude_html = f"""
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;padding:20px;margin-top:16px;border:1px solid #f59e0b;">
+            <div style="font-size:14px;font-weight:700;color:#92400e;margin-bottom:10px;">🧠 KI Deep Analysis – Signifikantes Marktereignis</div>
+            <div style="font-size:14px;color:#78350f;line-height:1.7;">{claude_analysis}</div>
+        </div>"""
+
+    # ── Wirtschaft Kompakt ──
+    wirtschaft_html = ""
+    for w in gemini_result.get("wirtschaft_kompakt", []):
+        title = w["title"]
+        summary = w.get("summary", "")
+        source = w.get("source", "")
+        wirtschaft_html += f"""
+        <tr>
+            <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;">
+                <div style="font-size:14px;"><span style="font-weight:600;color:#1e293b;">{title}</span> <span style="color:#64748b;">– {summary}</span></div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:3px;">{source}</div>
+            </td>
+        </tr>"""
+
+    if not wirtschaft_html:
+        wirtschaft_html = '<tr><td style="padding:16px;color:#94a3b8;font-style:italic;">Keine Wirtschaftsmeldungen verfügbar.</td></tr>'
+
+    # ── Marktausblick ──
+    outlook_html = market_outlook if market_outlook else "Kein Marktausblick verfügbar."
+
+    # ── Gesamtes HTML zusammenbauen ──
+    html = f"""<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f1f5f9;">
+<tr><td align="center" style="padding:24px 16px;">
+<table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+    <!-- ══ HEADER ══ -->
+    <tr><td style="background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);padding:32px 28px;">
+        <div style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">📰 NewsBot</div>
+        <div style="font-size:14px;color:#c7d2fe;margin-top:4px;">{weekday}, {long_date}</div>
+        <div style="margin-top:16px;">
+            <span style="display:inline-block;background:{sentiment_config['bg']};color:{sentiment_config['color']};padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;">
+                {sentiment_config['icon']} Marktstimmung: {sentiment_config['label']}
+            </span>
+        </div>
+    </td></tr>
+
+    <!-- ══ HEADLINE-TICKER ══ -->
+    <tr><td style="padding:28px 28px 8px 28px;">
+        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🗞️ Headline-Ticker</div>
+    </td></tr>
+    <tr><td style="padding:0 12px 20px 12px;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            {headlines_html}
+        </table>
+    </td></tr>
+
+    <!-- ══ DEEP DIVE ══ -->
+    <tr><td style="padding:8px 28px;">
+        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🏦 Deep Dive – Finanzen &amp; Banken</div>
+    </td></tr>
+    <tr><td style="padding:12px 28px 20px 28px;">
+        {deep_dives_html}
+        {claude_html}
+    </td></tr>
+
+    <!-- ══ WIRTSCHAFT KOMPAKT ══ -->
+    <tr><td style="padding:8px 28px;">
+        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">📊 Wirtschaft Kompakt</div>
+    </td></tr>
+    <tr><td style="padding:0 12px 20px 12px;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border-radius:10px;overflow:hidden;">
+            {wirtschaft_html}
+        </table>
+    </td></tr>
+
+    <!-- ══ MARKTAUSBLICK ══ -->
+    <tr><td style="padding:8px 28px;">
+        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🔮 Marktausblick</div>
+    </td></tr>
+    <tr><td style="padding:12px 28px 28px 28px;">
+        <div style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-radius:10px;padding:20px;border:1px solid #c7d2fe;">
+            <div style="font-size:14px;color:#3730a3;line-height:1.7;">{outlook_html}</div>
+        </div>
+    </td></tr>
+
+    <!-- ══ FOOTER ══ -->
+    <tr><td style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e2e8f0;">
+        <div style="font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
+            Generiert von <strong style="color:#6366f1;">NewsBot</strong> am {long_date} um {now.strftime('%H:%M')} Uhr MEZ<br>
+            ⚡ Gemini Flash &amp; Claude Opus · 📡 RSS Feeds · 🤖 GitHub Actions
+        </div>
+    </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+    return html
+
+
+def send_email(
+    markdown: str,
+    gemini_result: dict = None,
+    claude_analysis: str = "",
+    market_outlook: str = "",
+    smtp_server: str = "smtp.gmail.com",
+    smtp_port: int = 587,
+) -> bool:
+    """Sendet den Newsletter als professionelle HTML-E-Mail."""
     email_address = os.environ.get("EMAIL_ADDRESS", "")
     email_password = os.environ.get("EMAIL_PASSWORD", "")
     email_recipient = os.environ.get("EMAIL_RECIPIENT", "")
@@ -528,12 +715,17 @@ def send_email(markdown: str, smtp_server: str = "smtp.gmail.com", smtp_port: in
     date_str = now.strftime("%d.%m.%Y")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📰 NewsBot Newsletter – {date_str}"
-    msg["From"] = email_address
+    msg["Subject"] = f"📰 NewsBot – Dein Finanz-Briefing vom {date_str}"
+    msg["From"] = f"NewsBot <{email_address}>"
     msg["To"] = email_recipient
 
-    # Markdown als Plain-Text anhängen
+    # Plain-Text Fallback
     msg.attach(MIMEText(markdown, "plain", "utf-8"))
+
+    # HTML-Version (professionell gestylt)
+    if gemini_result:
+        html = build_newsletter_html(gemini_result, claude_analysis, market_outlook)
+        msg.attach(MIMEText(html, "html", "utf-8"))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
@@ -617,7 +809,12 @@ def main():
             log.warning("⚠️  GITHUB_REPOSITORY oder GITHUB_TOKEN nicht gesetzt")
 
     if args.output in ("email", "both"):
-        success = send_email(newsletter) or success
+        success = send_email(
+            newsletter,
+            gemini_result=gemini_result,
+            claude_analysis=claude_analysis,
+            market_outlook=market_outlook,
+        ) or success
 
     if args.output == "stdout":
         print(newsletter)
