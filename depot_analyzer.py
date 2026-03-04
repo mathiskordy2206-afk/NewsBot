@@ -32,6 +32,17 @@ def fetch_market_data(symbols):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
     
+    # Real-time Wechselkurs abrufen
+    exchange_rate = 1.0
+    try:
+        eur_usd = yf.Ticker("EURUSD=X")
+        exchange_rate_data = eur_usd.history(period="1d")
+        if not exchange_rate_data.empty:
+            exchange_rate = exchange_rate_data['Close'].iloc[-1]
+            log.info(f"💶 Aktueller EUR/USD Kurs: {exchange_rate}")
+    except Exception as e:
+        log.warning(f"Konnte Wechselkurs nicht abrufen, nutze 1.0: {e}")
+        
     for symbol in symbols:
         try:
             ticker = yf.Ticker(symbol)
@@ -49,9 +60,16 @@ def fetch_market_data(symbols):
                 target_price = info.get('targetMeanPrice', 'N/A')
                 recommendation = info.get('recommendationKey', 'N/A')
                 
+                # Währung prüfen und in Euro umrechnen (yfinance liefert meist USD für US-Werte)
+                currency = info.get('currency', 'USD')
+                is_usd = currency == 'USD'
+                
+                sp_eur = start_price / exchange_rate if is_usd else start_price
+                ep_eur = end_price / exchange_rate if is_usd else end_price
+                
                 data[symbol] = {
-                    "start_price": round(start_price, 2),
-                    "current_price": round(end_price, 2),
+                    "start_price": round(sp_eur, 2),
+                    "current_price": round(ep_eur, 2),
                     "performance_1w_pct": round(perf_pct, 2),
                     "trailing_pe": trailing_pe,
                     "target_price": target_price,
@@ -115,14 +133,14 @@ def analyze_portfolio(portfolio_data, config, api_key):
             if perf < worst_stock["perf"]:
                 worst_stock = {"name": item["name"], "perf": perf}
                 
-            # Wöchentliche Performance für das Gesamtdepot berechnen
+            # Wöchentliche Performance für das Gesamtdepot berechnen (schon in EUR)
             if shares > 0:
                 has_shares = True
                 total_current_value += d['current_price'] * float(shares)
                 total_start_value += d['start_price'] * float(shares)
             
             sign = "+" if perf > 0 else ""
-            portfolio_text += f"- {item['name']} ({sym}): Letzter Preis {d['current_price']} | 1-Wochen-Perf: {sign}{round(perf, 2)}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
+            portfolio_text += f"- {item['name']} ({sym}): Letzter Preis {d['current_price']} EUR | 1-Wochen-Perf: {sign}{round(perf, 2)}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
             
             if buy_in != "N/A":
                 # Gesamtperformance in Prozent
@@ -144,7 +162,7 @@ def analyze_portfolio(portfolio_data, config, api_key):
                         pass # Für das Zertifikat belassen wir es bei der % Rechnung
                     else:
                         profit_sign = "+" if profit > 0 else ""
-                        portfolio_text += f"  (Gesamt-Performance seit Kauf: {total_sign}{total_perf}% -> G/V: {profit_sign}{profit} USD)\n"
+                        portfolio_text += f"  (Gesamt-Performance seit Kauf: {total_sign}{total_perf}% -> G/V: {profit_sign}{profit} EUR)\n"
                 else:
                     portfolio_text += f"  (Gesamt-Performance seit Kauf bei {buy_in}: {total_sign}{total_perf}%)\n"
 
@@ -159,7 +177,7 @@ def analyze_portfolio(portfolio_data, config, api_key):
         summary_html = f"""
         <div style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:25px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
             <h3 style="margin:0 0 15px 0;font-size:15px;color:#0f172a;text-transform:uppercase;letter-spacing:1px;">Wochen-Überblick</h3>
-            <p style="margin:0 0 8px 0;font-size:15px;color:#475569;"><strong>Gesamt-Entwicklung (1W):</strong> <span style="color:{color};font-weight:bold;font-size:16px;">{sign}{round(total_perf_pct, 2)}% ({sign}{round(total_profit, 2)} USD)</span></p>
+            <p style="margin:0 0 8px 0;font-size:15px;color:#475569;"><strong>Gesamt-Entwicklung (1W):</strong> <span style="color:{color};font-weight:bold;font-size:16px;">{sign}{round(total_perf_pct, 2)}% ({sign}{round(total_profit, 2)} €)</span></p>
             <p style="margin:0 0 8px 0;font-size:14px;color:#475569;"><strong>🚀 Top der Woche:</strong> {best_stock['name']} <span style="color:#10b981;">(+{round(best_stock['perf'], 2)}%)</span></p>
             <p style="margin:0;font-size:14px;color:#475569;"><strong>🔻 Flop der Woche:</strong> {worst_stock['name']} <span style="color:#ef4444;">({round(worst_stock['perf'], 2)}%)</span></p>
         </div>
@@ -192,7 +210,7 @@ def scout_opportunities(watchlist_data, config, api_key):
         sym = item["symbol"]
         if sym in watchlist_data and "current_price" in watchlist_data[sym]:
             d = watchlist_data[sym]
-            watch_text += f"- {item['name']} ({sym}): Preis {d['current_price']} | 1W-Perf: {d['performance_1w_pct']}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
+            watch_text += f"- {item['name']} ({sym}): Preis {d['current_price']} EUR | 1W-Perf: {d['performance_1w_pct']}% | KGV: {d['trailing_pe']} | Analysten: {d['analyst_rating']}\n"
 
     prompt = f"""Du bist ein Analyst für Hidden Champions und Value/Growth-Aktien.
 
