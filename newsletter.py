@@ -161,15 +161,13 @@ def crawl_all_feeds(feeds: list[dict]) -> list[dict]:
 
 
 def call_gemini(prompt: str, api_key: str) -> str:
-    """Ruft die Gemini API auf (google-genai SDK)."""
+    """Ruft die Gemini API auf (google.generativeai SDK)."""
     try:
-        from google import genai
-
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         log.error(f"❌ Gemini API Fehler: {e}")
@@ -245,16 +243,28 @@ WICHTIG:
 """
 
     log.info("🤖 Gemini Flash verarbeitet Artikel...")
-    response = call_gemini(prompt, api_key)
+    
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        # System instructions parameter doesn't exist in early generativeai versions,
+        # so we prepend the instructions to the prompt
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        response_text = response.text
+    except Exception as e:
+        log.error(f"❌ Gemini API Fehler: {e}")
+        return _fallback_structure(articles)
 
     # JSON aus der Antwort extrahieren
     try:
         # Versuche direkt zu parsen
-        result = json.loads(response)
+        result = json.loads(response_text)
     except json.JSONDecodeError:
         # Versuche JSON aus Markdown-Code-Block zu extrahieren
         import re
-        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", response)
+        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", response_text)
         if json_match:
             try:
                 result = json.loads(json_match.group(1))
@@ -356,7 +366,17 @@ Was sollte ein Anleger heute im Blick behalten?
 Antworte nur mit dem Text, keine Überschriften oder Formatierung.
 """
 
-    return call_gemini(prompt, api_key)
+    log.info("🔮 Generiere Marktausblick...")
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        log.error(f"❌ Gemini API Fehler (Marktausblick): {e}")
+        return ""
 
 
 # ─── Markdown-Generierung ────────────────────────────────────────────────────
