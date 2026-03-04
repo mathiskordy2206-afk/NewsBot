@@ -765,7 +765,7 @@ def build_newsletter_html(
                             Newsletter generiert am <strong>{long_date}</strong> um <strong>{now.strftime('%H:%M')} Uhr MEZ</strong>
                         </p>
                         <p style="margin:0;font-size:12px;color:#94a3b8;">
-                            Powered by <a href="https://github.com/mathiskordy/NewsBot" style="color:#4f46e5;text-decoration:none;">NewsBot</a> &bull; Gemini 2.0 Flash &amp; Claude Opus
+                            Powered by <a href="https://github.com/mathiskordy/NewsBot" style="color:#4f46e5;text-decoration:none;">NewsBot</a> &bull; Gemini 2.5 Flash &amp; Claude Opus
                         </p>
                     </td>
                 </tr>
