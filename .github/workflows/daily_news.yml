@@ -2,8 +2,8 @@ name: "📰 Daily Newsletter"
 
 on:
   schedule:
-    # Jeden Tag um 07:00 UTC (= 08:00 MEZ)
-    - cron: "0 7 * * *"
+    # Jeden Tag um 06:00 UTC (= 07:00 MEZ)
+    - cron: "0 6 * * *"
   workflow_dispatch:
     # Manueller Trigger zum Testen
     inputs:

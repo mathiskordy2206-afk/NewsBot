@@ -542,10 +542,10 @@ def build_newsletter_html(
     }.get(sentiment, {"label": "Neutral", "color": "#f59e0b", "bg": "#fffbeb", "icon": "🟡"})
 
     def short_source(link, source_name):
-        """Erzeugt einen kurzen, klickbaren Quellen-Link."""
+        """Erzeugt einen kurzen, klickbaren Quellen-Link (nur der Name ist klickbar)."""
         if link:
-            return f'<a href="{link}" style="color:#6366f1;text-decoration:none;font-weight:500;">{source_name} →</a>'
-        return f'<span style="color:#94a3b8;">{source_name}</span>'
+            return f'<a href="{link}" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:bold;">Quelle: {source_name} &rarr;</a>'
+        return f'<span style="color:#64748b;font-weight:bold;">Quelle: {source_name}</span>'
 
     # ── Headlines bauen ──
     headlines_html = ""
@@ -554,22 +554,32 @@ def build_newsletter_html(
         link = h.get("link", "")
         summary = h.get("summary", "")
         source = h.get("source", "")
-        title_html = f'<a href="{link}" style="color:#1e293b;text-decoration:none;">{title}</a>' if link else title
+        
+        # Make the title itself a link if available, otherwise just text
+        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
+        
         headlines_html += f"""
         <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
-                <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-                    <td style="width:32px;vertical-align:top;padding-top:2px;">
-                        <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-align:center;line-height:26px;font-size:12px;font-weight:700;">{i}</span>
-                    </td>
-                    <td style="padding-left:12px;">
-                        <div style="font-size:15px;font-weight:600;color:#1e293b;line-height:1.4;">{title_html}</div>
-                        <div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.5;">{summary}</div>
-                        <div style="margin-top:6px;">{short_source(link, source)}</div>
-                    </td>
-                </tr></table>
+            <td style="padding:15px 0;border-bottom:1px solid #e2e8f0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td width="30" valign="top">
+                            <table width="24" height="24" cellpadding="0" cellspacing="0" border="0" style="background-color:#4f46e5;border-radius:12px;">
+                                <tr><td align="center" valign="middle" style="color:#ffffff;font-size:12px;font-weight:bold;line-height:24px;">{i}</td></tr>
+                            </table>
+                        </td>
+                        <td valign="top" style="padding-left:10px;">
+                            <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:bold;line-height:1.4;">{title_html}</h3>
+                            <p style="margin:0 0 8px 0;font-size:14px;color:#475569;line-height:1.5;">{summary}</p>
+                            <p style="margin:0;font-size:13px;">{short_source(link, source)}</p>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>"""
+
+    if not headlines_html:
+        headlines_html = '<tr><td style="padding:15px 0;color:#64748b;font-style:italic;">Keine Headlines gefunden.</td></tr>'
 
     # ── Deep Dives bauen ──
     deep_dives_html = ""
@@ -578,115 +588,171 @@ def build_newsletter_html(
         link = dd.get("link", "")
         analysis = dd.get("analysis", dd.get("summary", ""))
         source = dd.get("source", "")
-        title_html = f'<a href="{link}" style="color:#1e293b;text-decoration:none;">{title}</a>' if link else title
+        
+        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
+        
         deep_dives_html += f"""
-        <div style="background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:12px;border-left:4px solid #6366f1;">
-            <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;">{title_html}</div>
-            <div style="font-size:14px;color:#475569;line-height:1.6;">{analysis}</div>
-            <div style="margin-top:10px;">{short_source(link, source)}</div>
-        </div>"""
+        <tr>
+            <td style="padding:20px;background-color:#f8fafc;border-left:4px solid #4f46e5;margin-bottom:15px;display:block;">
+                <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;line-height:1.3;">{title_html}</h3>
+                <p style="margin:0 0 12px 0;font-size:15px;color:#334155;line-height:1.6;">{analysis}</p>
+                <p style="margin:0;font-size:13px;">{short_source(link, source)}</p>
+            </td>
+        </tr>"""
 
     if not deep_dives_html:
-        deep_dives_html = '<div style="color:#94a3b8;font-style:italic;padding:16px;">Heute keine signifikanten Finanz-Themen für einen Deep Dive.</div>'
+        deep_dives_html = '<tr><td style="padding:15px;color:#64748b;font-style:italic;">Heute keine signifikanten Finanz-Themen für einen Deep Dive.</td></tr>'
 
     # ── Claude Analysis ──
     claude_html = ""
     if claude_analysis:
         claude_html = f"""
-        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;padding:20px;margin-top:16px;border:1px solid #f59e0b;">
-            <div style="font-size:14px;font-weight:700;color:#92400e;margin-bottom:10px;">🧠 KI Deep Analysis – Signifikantes Marktereignis</div>
-            <div style="font-size:14px;color:#78350f;line-height:1.7;">{claude_analysis}</div>
-        </div>"""
+        <tr>
+            <td style="padding:20px;background-color:#fffbeb;border:1px solid #f59e0b;border-radius:8px;margin-top:20px;display:block;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td width="24" valign="top" style="font-size:20px;">🧠</td>
+                        <td valign="top" style="padding-left:10px;">
+                            <h4 style="margin:0 0 10px 0;font-size:16px;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Deep Analysis – Signifikantes Event</h4>
+                            <div style="font-size:15px;color:#78350f;line-height:1.6;">{claude_analysis}</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>"""
 
     # ── Wirtschaft Kompakt ──
     wirtschaft_html = ""
     for w in gemini_result.get("wirtschaft_kompakt", []):
         title = w["title"]
         summary = w.get("summary", "")
-        source = w.get("source", "")
+        link = w.get("link", "")
+        source = w.get("source", "Diverse")
+        
+        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
+        
         wirtschaft_html += f"""
         <tr>
-            <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;">
-                <div style="font-size:14px;"><span style="font-weight:600;color:#1e293b;">{title}</span> <span style="color:#64748b;">– {summary}</span></div>
-                <div style="font-size:12px;color:#94a3b8;margin-top:3px;">{source}</div>
+            <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+                <p style="margin:0 0 4px 0;font-size:15px;line-height:1.4;"><strong>{title_html}</strong> - <span style="color:#475569;">{summary}</span></p>
+                <p style="margin:0;font-size:12px;color:#94a3b8;font-weight:bold;">{source.upper()}</p>
             </td>
         </tr>"""
 
     if not wirtschaft_html:
-        wirtschaft_html = '<tr><td style="padding:16px;color:#94a3b8;font-style:italic;">Keine Wirtschaftsmeldungen verfügbar.</td></tr>'
+        wirtschaft_html = '<tr><td style="padding:15px 0;color:#64748b;font-style:italic;">Keine Kurzmeldungen verfügbar.</td></tr>'
 
     # ── Marktausblick ──
-    outlook_html = market_outlook if market_outlook else "Kein Marktausblick verfügbar."
+    outlook_html = market_outlook if market_outlook else "Derzeit kein KI-Marktausblick verfügbar."
 
-    # ── Gesamtes HTML zusammenbauen ──
-    html = f"""<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f1f5f9;">
-<tr><td align="center" style="padding:24px 16px;">
-<table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-    <!-- ══ HEADER ══ -->
-    <tr><td style="background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);padding:32px 28px;">
-        <div style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">📰 NewsBot</div>
-        <div style="font-size:14px;color:#c7d2fe;margin-top:4px;">{weekday}, {long_date}</div>
-        <div style="margin-top:16px;">
-            <span style="display:inline-block;background:{sentiment_config['bg']};color:{sentiment_config['color']};padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;">
-                {sentiment_config['icon']} Marktstimmung: {sentiment_config['label']}
-            </span>
-        </div>
-    </td></tr>
-
-    <!-- ══ HEADLINE-TICKER ══ -->
-    <tr><td style="padding:28px 28px 8px 28px;">
-        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🗞️ Headline-Ticker</div>
-    </td></tr>
-    <tr><td style="padding:0 12px 20px 12px;">
-        <table cellpadding="0" cellspacing="0" border="0" width="100%">
-            {headlines_html}
-        </table>
-    </td></tr>
-
-    <!-- ══ DEEP DIVE ══ -->
-    <tr><td style="padding:8px 28px;">
-        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🏦 Deep Dive – Finanzen &amp; Banken</div>
-    </td></tr>
-    <tr><td style="padding:12px 28px 20px 28px;">
-        {deep_dives_html}
-        {claude_html}
-    </td></tr>
-
-    <!-- ══ WIRTSCHAFT KOMPAKT ══ -->
-    <tr><td style="padding:8px 28px;">
-        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">📊 Wirtschaft Kompakt</div>
-    </td></tr>
-    <tr><td style="padding:0 12px 20px 12px;">
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border-radius:10px;overflow:hidden;">
-            {wirtschaft_html}
-        </table>
-    </td></tr>
-
-    <!-- ══ MARKTAUSBLICK ══ -->
-    <tr><td style="padding:8px 28px;">
-        <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;">🔮 Marktausblick</div>
-    </td></tr>
-    <tr><td style="padding:12px 28px 28px 28px;">
-        <div style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-radius:10px;padding:20px;border:1px solid #c7d2fe;">
-            <div style="font-size:14px;color:#3730a3;line-height:1.7;">{outlook_html}</div>
-        </div>
-    </td></tr>
-
-    <!-- ══ FOOTER ══ -->
-    <tr><td style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e2e8f0;">
-        <div style="font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
-            Generiert von <strong style="color:#6366f1;">NewsBot</strong> am {long_date} um {now.strftime('%H:%M')} Uhr MEZ<br>
-            ⚡ Gemini Flash &amp; Claude Opus · 📡 RSS Feeds · 🤖 GitHub Actions
-        </div>
-    </td></tr>
-
-</table>
-</td></tr>
+    # ── Gesamtes HTML zusammenbauen (Tabellen-Layout für E-Mail-Clients) ──
+    html = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NewsBot Finanz-Briefing</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif,-apple-system;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f1f5f9">
+    <tr>
+        <td align="center" style="padding:40px 15px;">
+            
+            <!-- MAIN CONTAINER -->
+            <table width="100%" max-width="650" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="max-width:650px;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.05);border:1px solid #e2e8f0;">
+                
+                <!-- HEADER -->
+                <tr>
+                    <td bgcolor="#1e293b" style="padding:40px 30px;background-color:#1e293b;">
+                        <h1 style="margin:0 0 5px 0;color:#ffffff;font-size:28px;letter-spacing:-0.5px;">Dein Finanz-Briefing</h1>
+                        <p style="margin:0 0 20px 0;color:#94a3b8;font-size:16px;">{weekday}, {long_date}</p>
+                        
+                        <table border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td bgcolor="{sentiment_config['bg']}" style="padding:6px 16px;border-radius:30px;font-size:14px;font-weight:bold;color:{sentiment_config['color']};">
+                                    {sentiment_config['icon']} Marktstimmung: {sentiment_config['label'].upper()}
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- SECTION: HEADLINES -->
+                <tr>
+                    <td style="padding:35px 30px 15px 30px;">
+                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">📰 Top Headlines</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 30px;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            {headlines_html}
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- SECTION: DEEP DIVE -->
+                <tr>
+                    <td style="padding:35px 30px 15px 30px;">
+                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">🏦 Deep Dive Analysten-Blick</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 30px;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            {deep_dives_html}
+                            {claude_html}
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- SECTION: WIRTSCHAFT KOMPAKT -->
+                <tr>
+                    <td style="padding:35px 30px 15px 30px;">
+                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">⚡ Kurzmeldungen Wirtschaft</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 30px;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            {wirtschaft_html}
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- SECTION: OUTLOOK -->
+                <tr>
+                    <td style="padding:35px 30px 15px 30px;">
+                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">🔮 KI-Marktausblick</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 30px 40px 30px;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f8fafc" style="border-radius:8px;">
+                            <tr>
+                                <td style="padding:25px;font-size:15px;color:#334155;line-height:1.6;">
+                                    {outlook_html}
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- FOOTER -->
+                <tr>
+                    <td bgcolor="#f8fafc" style="padding:25px 30px;border-top:1px solid #e2e8f0;text-align:center;">
+                        <p style="margin:0 0 10px 0;font-size:13px;color:#64748b;">
+                            Newsletter generiert am <strong>{long_date}</strong> um <strong>{now.strftime('%H:%M')} Uhr MEZ</strong>
+                        </p>
+                        <p style="margin:0;font-size:12px;color:#94a3b8;">
+                            Powered by <a href="https://github.com/mathiskordy/NewsBot" style="color:#4f46e5;text-decoration:none;">NewsBot</a> &bull; Gemini 2.0 Flash &amp; Claude Opus
+                        </p>
+                    </td>
+                </tr>
+                
+            </table>
+        </td>
+    </tr>
 </table>
 </body>
 </html>"""
