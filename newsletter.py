@@ -228,7 +228,7 @@ Erstelle ein JSON-Objekt mit folgender Struktur (NUR valides JSON, kein Markdown
         ... (maximal {MAX_DEEP_DIVES}, nur Finanz/Banken-Themen)
     ],
     "wirtschaft_kompakt": [
-        {{"title": "Thema", "summary": "1-2 Sätze", "source": "Quelle"}},
+        {{"title": "Thema", "summary": "1-2 Sätze", "source": "Quelle", "link": "URL"}},
         ... (maximal {MAX_WIRTSCHAFT_KOMPAKT})
     ],
     "market_sentiment": "bullish/bearish/neutral",
