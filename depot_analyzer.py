@@ -7,12 +7,6 @@ import yaml
 import yfinance as yf
 import logging
 import json
-import io
-import base64
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.use('Agg') # Headless mode für Serverbereich
 
 # Logging konfigurieren
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
@@ -65,14 +59,6 @@ def fetch_market_data(symbols):
                 forward_pe = info.get('forwardPE', 'N/A')
                 target_price = info.get('targetMeanPrice', 'N/A')
                 recommendation = info.get('recommendationKey', 'N/A')
-                ex_dividend_date = info.get('exDividendDate', None)
-                if ex_dividend_date:
-                    ex_dividend_date = datetime.fromtimestamp(ex_dividend_date).strftime('%d.%m.%Y')
-                
-                # News abrufen (Top 3 Headlines)
-                news = ticker.news
-                news_headlines = [n.get('title', 'News Headline') for n in news[:3]] if news else []
-                
                 
                 # Währung prüfen und in Euro umrechnen (yfinance liefert meist USD für US-Werte)
                 currency = info.get('currency', 'USD')
@@ -81,19 +67,13 @@ def fetch_market_data(symbols):
                 sp_eur = start_price / exchange_rate if is_usd else start_price
                 ep_eur = end_price / exchange_rate if is_usd else end_price
                 
-                # Historische Preise für Sparkline extrahieren
-                history_prices = hist['Close'].tolist()
-                
                 data[symbol] = {
                     "start_price": round(sp_eur, 2),
                     "current_price": round(ep_eur, 2),
                     "performance_1w_pct": round(perf_pct, 2),
-                    "history_prices": history_prices,
                     "trailing_pe": trailing_pe,
                     "target_price": target_price,
-                    "analyst_rating": recommendation,
-                    "ex_dividend_date": ex_dividend_date,
-                    "news_headlines": news_headlines
+                    "analyst_rating": recommendation
                 }
             else:
                 log.warning(f"Keine Historie für {symbol} gefunden.")
@@ -104,26 +84,6 @@ def fetch_market_data(symbols):
             data[symbol] = {"error": str(e)}
             
     return data
-
-def generate_sparkline(symbol, prices, color="#10b981"):
-    """Generiert einen winzigen 1-Wochen Chart (Sparkline) als Base64-PNG."""
-    if not prices or len(prices) < 2:
-        return ""
-    
-    fig, ax = plt.subplots(figsize=(1.5, 0.4))
-    ax.plot(prices, color=color, linewidth=2)
-    ax.axis('off')
-    
-    # Ränder entfernen
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, transparent=True)
-    buf.seek(0)
-    plt.close(fig)
-    
-    encoded = base64.b64encode(buf.read()).decode('utf-8')
-    return f"data:image/png;base64,{encoded}"
 
 # ─── 2. KI-Analyse ────────────────────────────────────────────────────────────
 
@@ -156,8 +116,6 @@ def analyze_portfolio(portfolio_data, config, api_key):
     worst_stock = {"name": "N/A", "perf": 9999.0}
     
     portfolio_text = "MEIN DEPOT (Performance der letzten 7 Tage):\n"
-    dividend_events = []
-    
     for item in config.get("portfolio", []):
         sym = item["symbol"]
         if sym in portfolio_data and "current_price" in portfolio_data[sym] and "start_price" in portfolio_data[sym]:
@@ -165,19 +123,15 @@ def analyze_portfolio(portfolio_data, config, api_key):
             buy_in = item.get("buy_in", "N/A")
             shares = item.get("shares", 0)
             
-            # Dividendenkalender check
-            if d.get("ex_dividend_date"):
-                dividend_events.append(f"<li>{item['name']} ({sym}): <b>{d['ex_dividend_date']}</b></li>")
-            
             # Hebel-Logik für Morgan Stanley Zertifikat (Ouster 2x Long)
             perf = d['performance_1w_pct']
             if sym == "OUST":
                 perf = perf * 2  # 2x Hebel
                 
             if perf > best_stock["perf"]:
-                best_stock = {"name": item["name"], "symbol": sym, "perf": perf, "prices": d["history_prices"], "news": d["news_headlines"]}
+                best_stock = {"name": item["name"], "perf": perf}
             if perf < worst_stock["perf"]:
-                worst_stock = {"name": item["name"], "symbol": sym, "perf": perf, "prices": d["history_prices"], "news": d["news_headlines"]}
+                worst_stock = {"name": item["name"], "perf": perf}
                 
             # Wöchentliche Performance für das Gesamtdepot berechnen (schon in EUR)
             if shares > 0:
@@ -212,18 +166,6 @@ def analyze_portfolio(portfolio_data, config, api_key):
                 else:
                     portfolio_text += f"  (Gesamt-Performance seit Kauf bei {buy_in}: {total_sign}{total_perf}%)\n"
 
-    # Portfolio Klumpenrisiko berechnen
-    weight_text = ""
-    if has_shares and total_current_value > 0:
-        weight_text = "PORTFOLIO GEWICHTUNG (Zur Beurteilung von Klumpenrisiken):\n"
-        for item in config.get("portfolio", []):
-            sym = item["symbol"]
-            if sym in portfolio_data and item.get("shares", 0) > 0:
-                d = portfolio_data[sym]
-                pos_value = d['current_price'] * float(item["shares"])
-                weight = (pos_value / total_current_value) * 100
-                weight_text += f"- {item['name']}: {round(weight, 1)}% vom Depot\n"
-
     # HTML Summary generieren
     summary_html = ""
     if has_shares and total_start_value > 0:
@@ -232,56 +174,22 @@ def analyze_portfolio(portfolio_data, config, api_key):
         sign = "+" if total_profit > 0 else ""
         color = "#10b981" if total_profit > 0 else "#ef4444"
         
-        # Sparklines generieren
-        best_img = generate_sparkline(best_stock["symbol"], best_stock.get("prices", []), color="#10b981")
-        worst_img = generate_sparkline(worst_stock["symbol"], worst_stock.get("prices", []), color="#ef4444")
-        
-        best_img_html = f'<br><img src="{best_img}" style="width:120px;height:auto;margin-top:4px;" />' if best_img else ''
-        worst_img_html = f'<br><img src="{worst_img}" style="width:120px;height:auto;margin-top:4px;" />' if worst_img else ''
-        
-        div_calendar_html = ""
-        if dividend_events:
-            div_calendar_html = f"<div style='margin-top:15px;padding-top:10px;border-top:1px dashed #cbd5e1;'><p style='margin:0 0 5px 0;font-size:14px;color:#475569;'><strong>📅 Nächste Ex-Dividenden / Termine:</strong></p><ul style='margin:0;padding-left:20px;font-size:13px;color:#64748b;'>" + "".join(dividend_events) + "</ul></div>"
-        
         summary_html = f"""
         <div style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:25px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
             <h3 style="margin:0 0 15px 0;font-size:15px;color:#0f172a;text-transform:uppercase;letter-spacing:1px;">Wochen-Überblick</h3>
-            <p style="margin:0 0 12px 0;font-size:15px;color:#475569;"><strong>Gesamt-Entwicklung (1W):</strong> <span style="color:{color};font-weight:bold;font-size:16px;">{sign}{round(total_perf_pct, 2)}% ({sign}{round(total_profit, 2)} €)</span></p>
-            
-            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                    <td width="50%" valign="top">
-                        <p style="margin:0 0 8px 0;font-size:14px;color:#475569;"><strong>🚀 Top der Woche:</strong><br>{best_stock['name']} <span style="color:#10b981;">(+{round(best_stock['perf'], 2)}%)</span>{best_img_html}</p>
-                    </td>
-                    <td width="50%" valign="top">
-                        <p style="margin:0;font-size:14px;color:#475569;"><strong>🔻 Flop der Woche:</strong><br>{worst_stock['name']} <span style="color:#ef4444;">({round(worst_stock['perf'], 2)}%)</span>{worst_img_html}</p>
-                    </td>
-                </tr>
-            </table>
-            
-            {div_calendar_html}
+            <p style="margin:0 0 8px 0;font-size:15px;color:#475569;"><strong>Gesamt-Entwicklung (1W):</strong> <span style="color:{color};font-weight:bold;font-size:16px;">{sign}{round(total_perf_pct, 2)}% ({sign}{round(total_profit, 2)} €)</span></p>
+            <p style="margin:0 0 8px 0;font-size:14px;color:#475569;"><strong>🚀 Top der Woche:</strong> {best_stock['name']} <span style="color:#10b981;">(+{round(best_stock['perf'], 2)}%)</span></p>
+            <p style="margin:0;font-size:14px;color:#475569;"><strong>🔻 Flop der Woche:</strong> {worst_stock['name']} <span style="color:#ef4444;">({round(worst_stock['perf'], 2)}%)</span></p>
         </div>
         """
-
-    # News-Context für Top/Flop zusammenbauen
-    news_context = f"""
-AKTUELLE NACHRICHTEN ZU TOP/FLOP (Nutze diese als Kontext für die KI-Erklärung!):
-News zu {best_stock['name']} (Top): {', '.join(best_stock.get("news", []))}
-News zu {worst_stock['name']} (Flop): {', '.join(worst_stock.get("news", []))}
-"""
 
     prompt = f"""Analysiere die Performance meines Aktiendepots für die letzte Woche auf Deutsch.
 
 {portfolio_text}
 
-{weight_text}
-
-{news_context}
-
 AUFGABE:
-1. Erkläre in 1-2 kurzen Absätzen den generellen Markttrend dieser Woche. Binde die "Top"- und "Flop"-News ein, um faktenbasiert zu erklären, *warum* diese Unternehmen gestiegen/gefallen sind.
-2. KLUMPENRISIKO: Beurteile kurz meine Depotgewichtung. Warne mich objektiv, wenn ein Sektor oder eine Aktie zu stark gewichtet ist (>20%).
-3. HANDLUNGSEMPFEHLUNGEN (WICHTIG!): Gehe meine Aktien durch, aber erwähne NUR die Aktien, bei denen ich aktuell VORSICHTIG sein sollte, die ich VERKAUFEN sollte (z.B. Gewinnmitnahmen/Bewertung zu hoch) oder bei denen ich NACHKAUFEN sollte. 
+1. Erkläre in 1-2 kurzen Absätzen den generellen Markttrend dieser Woche.
+2. HANDLUNGSEMPFEHLUNGEN (WICHTIG!): Gehe meine Aktien durch, aber erwähne NUR die Aktien, bei denen ich aktuell VORSICHTIG sein sollte, die ich VERKAUFEN sollte (z.B. Gewinnmitnahmen/Bewertung zu hoch) oder bei denen ich NACHKAUFEN sollte. 
 Gib zu diesen handverlesenen Titeln eine knappe Begründung.
 -> IGNORIERE alle Aktien komplett, bei denen die Empfehlung ohnehin nur "Halten" lautet. Zeige mir ausschließlich die "Action Items"!
 -> FALLS alle Aktien auf "Halten" stehen und es keine Action Items gibt, schreibe zwingend: "<p>Aktuell gibt es bei deinen Einzelpositionen keinen akuten Handlungsbedarf, alle Positionen können solide gehalten werden.</p>"
