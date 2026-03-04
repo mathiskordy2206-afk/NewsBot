@@ -3,30 +3,49 @@
 # Nutze die offiziellen Yahoo Finance Ticker-Symbole (z.B. AAPL für Apple, ALV.DE für Allianz).
 
 portfolio:
-  - symbol: "AAPL"
-    name: "Apple Inc."
-    buy_in: 150.00 
+  # Größte Positionen aus dem Depot (inklusive Krypto & Ouster)
+  - symbol: "TSLA"
+    name: "Tesla Inc."
+    shares: 2.65
     
-  - symbol: "MSFT"
-    name: "Microsoft Corp."
-    buy_in: 320.50
+  - symbol: "BABA"
+    name: "Alibaba Group Holding Ltd."
+    shares: 5.02
 
-  - symbol: "ALV.DE"
-    name: "Allianz SE"
-    buy_in: 210.00
-
-  - symbol: "NVDA"
-    name: "Nvidia Corp."
-    buy_in: 400.00
+  - symbol: "ARCC"
+    name: "Ares Capital Corp."
+    shares: 33.78
 
   - symbol: "AMZN"
     name: "Amazon.com Inc."
-    buy_in: 180.00
-    shares: 6
+    shares: 8.71 # 2.71 aus Depot + 6 zusätzliche
+
+  - symbol: "AAPL"
+    name: "Apple Inc."
+    shares: 1.96
+
+  - symbol: "NVDA"
+    name: "Nvidia Corp."
+    shares: 2.53
+
+  - symbol: "GOOGL"
+    name: "Alphabet Inc."
+    shares: 1.50
+
+  - symbol: "PYPL"
+    name: "PayPal Holdings Inc."
+    shares: 11.24
+
+  - symbol: "MSCI"
+    name: "MSCI Inc."
+    shares: 0.70
+
+  - symbol: "XLM-USD"
+    name: "Stellar (Krypto)"
+    shares: 1931.00
 
   - symbol: "OUST"
-    name: "Ouster Inc. (Basiswert für 2x Long Morgan Stanley)"
-    buy_in: 5.28 # 528 € / 100 Stück
+    name: "Ouster Inc. (Basiswert für 2x Long)"
     shares: 100
 
 watchlist:
