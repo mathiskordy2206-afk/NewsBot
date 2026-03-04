@@ -715,17 +715,23 @@ def send_email(
     date_str = now.strftime("%d.%m.%Y")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📰 NewsBot – Dein Finanz-Briefing vom {date_str}"
-    msg["From"] = f"NewsBot <{email_address}>"
+    msg["Subject"] = f"=?utf-8?Q?=F0=9F=93=B0?= NewsBot – Finanz-Briefing {date_str}"
+    msg["From"] = email_address
     msg["To"] = email_recipient
 
-    # Plain-Text Fallback
+    # Plain-Text Fallback (wird angezeigt wenn HTML nicht geht)
     msg.attach(MIMEText(markdown, "plain", "utf-8"))
 
-    # HTML-Version (professionell gestylt)
+    # HTML-Version (professionell gestylt) – wird immer angehängt
     if gemini_result:
-        html = build_newsletter_html(gemini_result, claude_analysis, market_outlook)
-        msg.attach(MIMEText(html, "html", "utf-8"))
+        html_content = build_newsletter_html(gemini_result, claude_analysis, market_outlook)
+    else:
+        # Minimales HTML-Fallback aus Markdown
+        html_content = f"<html><body><pre>{markdown}</pre></body></html>"
+
+    html_part = MIMEText(html_content, "html", "utf-8")
+    html_part.replace_header("Content-Type", "text/html; charset=utf-8")
+    msg.attach(html_part)
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
