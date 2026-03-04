@@ -801,7 +801,8 @@ def send_email(
     date_str = now.strftime("%d.%m.%Y")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"=?utf-8?Q?=F0=9F=93=B0?= NewsBot – Finanz-Briefing {date_str}"
+    # Einfacher, sauberer Betreff
+    msg["Subject"] = f"Newsletter - {date_str}"
     msg["From"] = email_address
     msg["To"] = email_recipient
 
