@@ -10,7 +10,7 @@ on:
       output:
         description: "Ausgabekanal"
         required: false
-        default: "github"
+        default: "both"
         type: choice
         options:
           - github
