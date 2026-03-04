@@ -174,9 +174,11 @@ AUFGABE:
 2. HANDLUNGSEMPFEHLUNGEN (WICHTIG!): Gehe meine Aktien durch, aber erwähne NUR die Aktien, bei denen ich aktuell VORSICHTIG sein sollte, die ich VERKAUFEN sollte (z.B. Gewinnmitnahmen/Bewertung zu hoch) oder bei denen ich NACHKAUFEN sollte. 
 Gib zu diesen handverlesenen Titeln eine knappe Begründung.
 -> IGNORIERE alle Aktien komplett, bei denen die Empfehlung ohnehin nur "Halten" lautet. Zeige mir ausschließlich die "Action Items"!
+-> FALLS alle Aktien auf "Halten" stehen und es keine Action Items gibt, schreibe zwingend: "<p>Aktuell gibt es bei deinen Einzelpositionen keinen akuten Handlungsbedarf, alle Positionen können solide gehalten werden.</p>"
 
-Formatiere dein Ergebnis als sauberes HTML, das ich direkt in eine E-Mail als Body einbauen kann. Nutze <h3> und <p> Tags. Keine ```html Codeblöcke, nur das pure HTML!
-Nutze keine komplexen CSS-Klassen, nur maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
+Formatiere dein Ergebnis als reines HTML-Snippet.
+WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
+Nutze maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
 """
     ai_html = call_gemini(prompt, api_key)
     return summary_html + "\n" + ai_html
@@ -204,7 +206,8 @@ Für jede der 3 Empfehlungen:
 - Nenne Name und Symbol
 - Erkläre knackig den fundamentalen Katalysator (Warum jetzt attraktiv? Unterbewertet? Starkes Wachstum? Nischen-Burggraben?)
 
-Formatiere dein Ergebnis als sauberes HTML, das ich direkt in eine E-Mail als Body einbauen kann. Nutze <h3> und <p> Tags. Keine ```html Codeblöcke, nur das pure HTML!
+Formatiere dein Ergebnis als reines HTML-Snippet.
+WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
 """
     return call_gemini(prompt, api_key)
 
