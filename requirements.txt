@@ -1,6 +1,7 @@
-feedparser>=6.0
-google-generativeai>=0.4.0
-anthropic>=0.40.0
+feedparser==6.0.10
+google-generativeai==0.8.2
+yfinance==0.2.40
+matplotlib==3.9.0.0
 pyyaml>=6.0
 requests>=2.31
 yfinance>=0.2.30
