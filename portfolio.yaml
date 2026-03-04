@@ -1,0 +1,27 @@
+# ── DepotBot Konfiguration ──
+# Hier kannst du deine aktuellen Depotpositionen und eine Watchlist eintragen.
+# Nutze die offiziellen Yahoo Finance Ticker-Symbole (z.B. AAPL für Apple, ALV.DE für Allianz).
+
+portfolio:
+  - symbol: "AAPL"
+    name: "Apple Inc."
+    buy_in: 150.00 
+    
+  - symbol: "MSFT"
+    name: "Microsoft Corp."
+    buy_in: 320.50
+
+  - symbol: "ALV.DE"
+    name: "Allianz SE"
+    buy_in: 210.00
+
+  - symbol: "NVDA"
+    name: "Nvidia Corp."
+    buy_in: 400.00
+
+watchlist:
+  - symbol: "PLTR"
+    name: "Palantir Technologies"
+  
+  - symbol: "RHM.DE"
+    name: "Rheinmetall AG"
