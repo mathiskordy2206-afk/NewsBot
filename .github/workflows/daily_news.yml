@@ -49,4 +49,4 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
         run: |
-          python newsletter.py --output ${{ github.event.inputs.output || 'github' }}
+          python newsletter.py --output ${{ github.event.inputs.output || 'both' }}
