@@ -212,13 +212,14 @@ class AnalyticsEngine:
                 
             # Kalender - nur Events innerhalb der nächsten 7 Tage anzeigen
             now = datetime.now()
-            in_7_days = now + timedelta(days=7)
+            today_date = now.date()
+            in_7_days_date = (now + timedelta(days=7)).date()
             
             if d.get("ex_dividend_date"):
                 try:
                     event_date = datetime.strptime(d["ex_dividend_date"], "%d.%m.%Y")
-                    # Wenn das Event heute oder in den nächsten 7 Tagen liegt
-                    if now.date() <= event_date.date() <= in_7_days.date():
+                    # Wenn das Event genau heute oder bis in 7 Tagen liegt
+                    if today_date <= event_date.date() <= in_7_days_date:
                         calendar_events.append({"type": "💰 Ex-Div", "name": item["name"], "date": d["ex_dividend_date"], "date_obj": event_date})
                 except ValueError:
                     pass
@@ -226,7 +227,7 @@ class AnalyticsEngine:
             if d.get("earnings_date"):
                 try:
                     event_date = datetime.strptime(d["earnings_date"], "%d.%m.%Y")
-                    if now.date() <= event_date.date() <= in_7_days.date():
+                    if today_date <= event_date.date() <= in_7_days_date:
                         calendar_events.append({"type": "📊 Earnings", "name": item["name"], "date": d["earnings_date"], "date_obj": event_date})
                 except ValueError:
                     pass
@@ -322,10 +323,9 @@ Analysiere die wöchentliche Performance meines Portfolios (auf Deutsch).
 
 {news_text}
 
-AUFGABE (3 kurze Absätze):
+AUFGABE (2 kurze Absätze):
 1. **Trend & Tops/Flops**: Erkläre (unter Einbezug der News) WARUM meine stärkste Position gestiegen und meine schwächste gefallen ist.
-2. **Klumpenrisiko-Check**: Ist eine Position >25% gewichtet? Falls ja, sprich eine analytische Warnung zur Diversifikation aus. Falls nein, lobe die solide Verteilung.
-3. **Action Items (Nur wenn nötig)**: Welche 1-2 Aktien sind derzeit fundamental gefährdet oder massiv überbewertet (Verkauf/Gewinnmitnahme) bzw. wo lohnt sich ein Rebuy? Überspringe halte-Kandidaten komplett. Falls keine Action nötig ist, schreibe: "Es gibt akut keinen fundamentalen Handlungsbedarf im Depot."
+2. **Action Items (Nur wenn nötig)**: Welche 1-2 Aktien sind derzeit fundamental gefährdet oder massiv überbewertet (Verkauf/Gewinnmitnahme) bzw. wo lohnt sich ein Rebuy? Überspringe halte-Kandidaten komplett. Falls keine Action nötig ist, schreibe: "Es gibt akut keinen fundamentalen Handlungsbedarf im Depot."
 
 Regeln für die Ausgabe:
 - Formatiere als reines HTML (nur <p>, <h3>, <ul>, <li>, <strong>).
