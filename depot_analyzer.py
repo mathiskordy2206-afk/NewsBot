@@ -166,6 +166,91 @@ def generate_sparkline(prices, color="#10b981"):
         log.warning(f"Sparkline konnte nicht generiert werden: {e}")
         return ""
 
+# ─── 1c. Langzeit-Historie ────────────────────────────────────────────────────
+
+def update_and_load_history(total_current_value: float, history_file: str = "history.json"):
+    """
+    Lädt die Historie, hängt den aktuellen Wert an (falls es Freitag ist oder zum Testen)
+    und gibt die komplette Historie zurück.
+    """
+    history = []
+    try:
+        if os.path.exists(history_file):
+            with open(history_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+    except Exception as e:
+        log.warning(f"Konnte Historie nicht laden: {e}")
+
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+
+    # Prüfen, ob für heute schon ein Eintrag existiert
+    already_exists = any(entry.get("date") == date_str for entry in history)
+    
+    if not already_exists and total_current_value > 0:
+        history.append({
+            "date": date_str,
+            "value": round(total_current_value, 2)
+        })
+        # Behalte nur die letzten 52 Wochen (1 Jahr)
+        history = history[-52:]
+        try:
+            with open(history_file, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2)
+            log.info(f"💾 Historie aktualisiert: {len(history)} Datenpunkte.")
+        except Exception as e:
+            log.warning(f"Konnte Historie nicht speichern: {e}")
+
+    return history
+
+def generate_history_chart(history: list, color="#0ea5e9"):
+    """Generiert einen Chart über den Depot-Verlauf als Base64-PNG."""
+    if not history or len(history) < 2:
+        return ""
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+
+        dates = [datetime.strptime(entry["date"], "%Y-%m-%d") for entry in history]
+        values = [entry["value"] for entry in history]
+
+        fig, ax = plt.subplots(figsize=(6, 2.5))
+        
+        # Linie zeichnen
+        ax.plot(dates, values, color=color, linewidth=2, marker='o', markersize=4, markerfacecolor='white', markeredgewidth=1.5)
+        
+        # Leichte Füllung unter der Linie
+        ax.fill_between(dates, values, alpha=0.1, color=color)
+        
+        # Y-Achse formatieren (Werte mit € Zeichen)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:,} €".format(int(x)).replace(',', '.')))
+        
+        # X-Achse formatieren (Monat Jahr)
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+        
+        # Styling
+        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.tick_params(axis='both', which='major', labelsize=9, colors='#64748b')
+        
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=120, transparent=True, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+
+        encoded = base64.b64encode(buf.read()).decode('utf-8')
+        return f"data:image/png;base64,{encoded}"
+    except Exception as e:
+        log.warning(f"Verlaufs-Chart konnte nicht generiert werden: {e}")
+        return ""
+
 # ─── 2. KI-Analyse ────────────────────────────────────────────────────────────
 
 def call_gemini(prompt: str, api_key: str) -> str:
@@ -328,7 +413,7 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li> Tags! Verbotene Tags: <html>, <head>, <
 Nutze maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
 """
     ai_html = call_gemini(prompt, api_key)
-    return summary_html + "\n" + ai_html
+    return summary_html, ai_html, total_current_value
 
 def scout_opportunities(watchlist_data, config, api_key):
     """Lässt Gemini neue, unentdeckte Kauftipps generieren."""
@@ -360,10 +445,27 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li> Tags! Verbotene Tags: <html>, <head>, <
 
 # ─── 3. E-Mail Versand ────────────────────────────────────────────────────────
 
-def build_email_html(portfolio_html, opportunities_html):
+def build_email_html(summary_html, portfolio_html, opportunities_html, history_chart_html=""):
     """Baut eine professionelle HTML-E-Mail zusammen."""
     now = datetime.now(timezone(timedelta(hours=1)))
     date_str = now.strftime("%d.%m.%Y")
+
+    # Historien-Chart Block (wird nur eingefügt, wenn Historie > 1 Woche lang ist)
+    chart_block = ""
+    if history_chart_html:
+        chart_block = f"""
+        <!-- HISTORY CHART -->
+        <tr>
+            <td style="padding:0 30px 25px 30px;">
+                <div style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+                    <h3 style="margin:0 0 15px 0;font-size:15px;color:#0f172a;text-transform:uppercase;letter-spacing:1px;">Langzeit-Entwicklung</h3>
+                    <div style="text-align:center;">
+                        <img src="{history_chart_html}" alt="Depot Verlauf" style="max-width:100%;height:auto;display:block;margin:0 auto;" />
+                    </div>
+                </div>
+            </td>
+        </tr>
+        """
 
     html = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="de">
@@ -385,10 +487,19 @@ def build_email_html(portfolio_html, opportunities_html):
                     </td>
                 </tr>
 
-                <!-- PORTFOLIO ANALYSIS -->
+                <!-- PORTFOLIO SUMMARY -->
                 <tr>
-                    <td style="padding:35px 30px 15px 30px;">
-                        <h2 style="margin:0;color:#0ea5e9;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0f2fe;padding-bottom:10px;">📊 Deine Depot-Performance</h2>
+                    <td style="padding:35px 30px 0 30px;">
+                        {summary_html}
+                    </td>
+                </tr>
+
+                {chart_block}
+
+                <!-- PORTFOLIO ANALYSIS TEXT -->
+                <tr>
+                    <td style="padding:10px 30px 15px 30px;">
+                        <h2 style="margin:0;color:#0ea5e9;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0f2fe;padding-bottom:10px;">📊 KI-Marktanalyse & Action Items</h2>
                     </td>
                 </tr>
                 <tr>
@@ -478,21 +589,33 @@ def main():
     watchlist_data = fetch_market_data(watchlist_symbols)
 
     # KI Analyse
-    portfolio_html = analyze_portfolio(portfolio_data, config, gemini_key)
+    summary_html, portfolio_html, total_current_value = analyze_portfolio(portfolio_data, config, gemini_key)
     opportunities_html = scout_opportunities(watchlist_data, config, gemini_key)
+
+    # Langzeit-Historie laden/updaten und Chart generieren
+    history_data = update_and_load_history(total_current_value)
+    history_chart_html = generate_history_chart(history_data)
 
     # HTML bereinigen (falls Gemini den Codeblock-Markdown mitschickt)
     portfolio_html = portfolio_html.replace("```html", "").replace("```", "").strip()
     opportunities_html = opportunities_html.replace("```html", "").replace("```", "").strip()
 
     # Email generieren und senden
-    final_email_html = build_email_html(portfolio_html, opportunities_html)
+    final_email_html = build_email_html(summary_html, portfolio_html, opportunities_html, history_chart_html)
 
     # Für manuelles Testen lokal speichern
     with open("depot_report.html", "w", encoding="utf-8") as f:
         f.write(final_email_html)
 
-    send_email(final_email_html)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", action="store_true", help="Kein E-Mail Versand")
+    args = parser.parse_args()
+
+    if not args.dry_run:
+        send_email(final_email_html)
+    else:
+        log.info("🏃 Dry-Run beendet. Keine E-Mail gesendet.")
 
 if __name__ == "__main__":
     main()
