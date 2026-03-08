@@ -7,6 +7,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timezone, timedelta
+import requests
 import yfinance as yf
 import google.generativeai as genai
 
@@ -52,7 +53,11 @@ Beispielformat:
 def fetch_stock_data(symbol: str) -> dict:
     log.info(f"   => Lade Live-Daten für {symbol}...")
     try:
-        ticker = yf.Ticker(symbol)
+        # User-Agent Session für Yahoo Finance erstellen, um Blockaden durch GitHub Actions zu verhindern
+        session = requests.Session()
+        session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'})
+        
+        ticker = yf.Ticker(symbol, session=session)
         info = ticker.info
         
         current_price = info.get('currentPrice', info.get('regularMarketPrice', 'N/A'))
