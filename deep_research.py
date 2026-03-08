@@ -122,6 +122,7 @@ Schreibe eine strukturierte, professionelle Analyse für diese Aktie. Halte dich
 5. Klare Entscheidung: Ist die Aktie ein Kauf oder sollte man lieber noch abwarten? Fälle am Ende ein klares Urteil.
 
 Schreibe im Berater-Stil auf Deutsch. Zeige mir, dass du die Vor- und Nachteile rational gegeneinander aufgewogen hast.
+WICHTIGES VETO: Verwende niemals die Begriffe "Pick-and-Shovel", "Schaufelverkäufer" oder ähnliche Metaphern im Text! Schreibe völlig natürlich über "B2B-Unternehmen", "Infrastruktur-Player" oder "Zulieferer".
 
 Formatiere dein Ergebnis als reines HTML-Snippet. Nutze <h3> für die Zwischenüberschriften der 5 Punkte und <p> für den Text. 
 WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
