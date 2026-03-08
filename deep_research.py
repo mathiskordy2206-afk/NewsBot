@@ -20,13 +20,13 @@ def get_gemini_model(api_key: str):
 
 def identify_candidates(model) -> list:
     log.info("\n🔍 [Schritt 1] KI sucht nach 3 Aktien mit hohem mittelfristigem Potenzial...\n")
-    prompt = """Du bist ein erstklassiger Aktien-Analyst.
-Identifiziere exakt 3 Aktien (Unternehmen), die aktuell ein extrem hohes, positives Potenzial für die mittelfristige Zukunft (6 bis 18 Monate) haben.
-Sie können aus jedem Sektor stammen, aber es muss fundamentale oder makroökonomische Katalysatoren geben.
+    prompt = """Du bist ein brillanter Aktien-Analyst, der sich auf sogenannte "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen spezialisiert hat.
+Identifiziere exakt 3 Unternehmen, die aktuell als essenzielle und oft übersehene Zulieferer, Infrastrukturbereitsteller oder B2B-Dienstleister für große Technologietrends oder Makro-Hypes (wie KI, Automatisierung, Energie, Biotech etc.) fungieren.
+Vermeide unbedingt die allgemein bekannten Namen wie Nvidia, Apple, Microsoft, Tesla oder Amazon. Suche nach nischigen, extrem wichtigen Playern im Hintergrund (z.B. Equipment-Hersteller, Spezialchemie, hochspezialisierte Software, Halbleiter-Zulieferer), die ein enormes kurz- bis mittelfristiges Potenzial haben.
 
-Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den Tickersymbolen zurück, ohne Markdown, ohne weitere Erklärungen.
+Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne weitere Erklärungen.
 Beispielformat:
-["AAPL", "NVDA", "MC.PA"]
+["ASML", "SYPS", "VRT"]
 """
     try:
         response = model.generate_content(prompt)
@@ -110,10 +110,10 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 - Letzte News-Schlagzeilen: {'; '.join(stock_data.get('recent_news', []))}
 
 AUFTRAG:
-Schreibe eine tiefgehende, kritische Analyse für diese Aktie. Halte dich an folgende Struktur:
-1. Das "Bull Case" (Der Katalysator): Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate?
-2. Der kritische Realitätscheck (Das "Bear Case"): Zerreiße das Bull Case. Welche makroökonomischen, firmeninternen oder wettbewerbsbedingten Risiken werden übersehen? Ist die Bewertung (KGV) aktuell eigentlich viel zu hoch?
-3. Fazit & Knallhartes Urteil: Ist das wirklich ein gutes Investment für einen rationalen Anleger, oder doch eher eine riskante Wette? Positioniere dich klar (Kaufen, Warten, Hände weg).
+Schreibe eine tiefgehende, kritische Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
+1. Das "Pick-and-Shovel" Bull Case: Für welchen großen Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate?
+2. Der kritische Realitätscheck (Bear Case): Welche makroökonomischen, firmeninternen oder wettbewerbsbedingten Risiken werden übersehen? Ist die aktuelle Bewertung eigentlich viel zu hoch?
+3. Risiko-Rendite-Abwägung & Knallhartes Fazit: Wie steht das konkrete downside-Risiko im Verhältnis zum upside-Potenzial? Ist es ein gutes Investment für einen rationalen Anleger oder eher eine Wette? Positioniere dich klar (Kaufen, Warten, Hände weg).
 
 Schreibe professionell, analytisch und auf Deutsch. Nutze das bereitgestellte Datenmaterial (z.B. hohe KGV oder fragliches Umsatzwachstum), um deine Skepsis zu belegen. Mach es nicht künstlich lang, aber inhaltlich extrem dicht.
 
