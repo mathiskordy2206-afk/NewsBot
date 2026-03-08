@@ -19,16 +19,16 @@ def get_gemini_model(api_key: str):
     return genai.GenerativeModel('gemini-2.5-flash')
 
 def identify_candidates(model) -> list:
-    log.info("\n🔍 [Schritt 1] KI durchläuft einen internen Brainstorming- und Evaluierungsprozess für nischige Spitzenkandidaten...\n")
-    prompt = """Du bist ein brillanter, unkonventioneller Aktien-Analyst für fundamental starke Unternehmen aus der zweiten und dritten Reihe.
-Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell als essenzielle, aber oft übersehene B2B-Infrastruktur-Player, Zulieferer oder Dienstleister fungieren, bei denen ein unmittelbares und reales Upside-Potenzial auf absehbare Zeit (6-18 Monate) besteht.
+    log.info("\n🔍 [Schritt 1] KI sucht nach fundamental starken, nicht-mainstream Aktien...\n")
+    prompt = """Du bist ein datengetriebener Aktienanalyst für institutionelle Investoren.
+Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell ein enormes, realistisches Upside-Potenzial für die nächsten 6 bis 18 Monate bieten.
 
-WICHTIGE REGELN:
-1. VERBOTENE MEGA-CAPS: Absolutes Veto gegen große Techwerte! Verbote beinhalten (aber nicht nur) NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD, AVGO.
-2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien. Sei extrem kreativ bei der Auswahl! Suche dir 3 völlig unterschiedliche Branchen (z.B. 1x Wasser-Infrastruktur für Rechenzentren, 1x hochspezialisierte Agrar-Chemie, 1x Nischen-Cybersecurity) und picke dir dort gezielt Player heraus.
-3. QUALITÄT VOR BEKANNTHEIT: Führe einen internen Screening-Prozess durch. Denke an 10 Mid-Cap-Kandidaten, sortiere die schwachen aus und präsentiere mir NUR die besten 3.
+STRIKTE REGELN ZUR AUSWAHL:
+1. KEIN MAINSTREAM: Wähle keine Unternehmen, die täglich in den Nachrichten sind (z.B. NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD). Suche in der zweiten Reihe nach hochprofitablen oder stark wachsenden Hidden Champions.
+2. DYNAMIK & VIELFALT: Überlege dir 3 völlig unterschiedliche, spannende Sektoren (z.B. Industrieautomatisierung, spezialisierte Software, Medizintechnik, Infrastruktur, Nischen-Chemie) und wähle aus jedem Sektor den attraktivsten Player.
+3. FUNDAMENTALE STÄRKE: Das Unternehmen muss einen echten, greifbaren Wachstumstreiber oder Burggraben haben (keine reinen Meme- oder Zockeraktien). Führe im Hintergrund ein breites Screening von mind. 10 Aktien durch und wähle nur die besten 3 aus.
 
-Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges anderes Wort.
+Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges drittes Wort.
 Beispielformat:
 ["ROK", "XYL", "FSLR"]
 """
@@ -114,18 +114,16 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 - Letzte News-Schlagzeilen: {'; '.join(stock_data.get('recent_news', []))}
 
 AUFTRAG:
-Schreibe eine strukturierte, professionelle Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
-1. Kurze Vorstellung: Was macht das Unternehmen (in 2 Sätzen) und warum ist es für den jeweiligen Sektor so wichtig?
-2. Wichtige Kennzahlen: Fasse die zur Verfügung gestellten Daten (KGV, Umsatzwachstum, etc.) in 1-2 kurzen Sätzen zusammen.
-3. Das eigentliche Potenzial: Warum hat die Aktie in der aktuellen Lage und mittelfristig großes Potenzial? Warum ist *genau jetzt* der richtige Moment, einzusteigen?
-4. Die kritische Abwägung: Was könnte schiefgehen? Beleuchte realistische Risiken, Herausforderungen oder ob sie schon zu hoch bewertet ist.
-5. Klare Entscheidung: Ist die Aktie ein Kauf oder sollte man lieber noch abwarten? Fälle am Ende ein klares Urteil.
+Erstelle eine präzise, faktenbasierte und strukturierte Analyse. Halte dich exakt an diesen strukturierten Output und vermeide jegliches ausschweifende "Gequassel":
 
-Schreibe im Berater-Stil auf Deutsch. Zeige mir, dass du die Vor- und Nachteile rational gegeneinander aufgewogen hast.
-WICHTIGES VETO: Verwende niemals die Begriffe "Pick-and-Shovel", "Schaufelverkäufer" oder ähnliche Metaphern im Text! Schreibe völlig natürlich über "B2B-Unternehmen", "Infrastruktur-Player" oder "Zulieferer".
+1. Kurze Vorstellung: Was macht das Unternehmen (in maximal 2 Sätzen) und warum ist sein Geschäftsmodell stark?
+2. Wichtige Kennzahlen: Fasse die zur Verfügung gestellten realen Daten (KGV, Umsatzwachstum, Verschuldung etc.) sachlich in 1-2 Sätzen zusammen.
+3. Warum diese Aktie Potenzial hat: Erkläre den konkreten Katalysator. Warum ist realistischerweise mit einem Upside in den nächsten 6-18 Monaten zu rechnen? Warum ist *genau jetzt* der richtige Kaufmoment?
+4. Kritische Abwägung (Risiko): Beleuchte realistische Risiken. Wo liegen die Gefahren in der Bilanz oder im Marktumfeld?
+5. Klare Entscheidung: Wäge die Argumente aus Punkt 3 und 4 gegeneinander ab und fälle ein eindeutiges Urteil (Kaufen oder Abwarten). Kein Schwammig-Reden.
 
 Formatiere dein Ergebnis als reines HTML-Snippet. Nutze <h3> für die Zwischenüberschriften der 5 Punkte und <p> für den Text. 
-WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
+WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html , Markdown!
 """
     try:
         response = model.generate_content(prompt)
