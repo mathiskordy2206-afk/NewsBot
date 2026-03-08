@@ -20,12 +20,12 @@ def get_gemini_model(api_key: str):
 
 def identify_candidates(model) -> list:
     log.info("\n🔍 [Schritt 1] KI durchläuft einen internen Brainstorming- und Evaluierungsprozess für nischige Spitzenkandidaten...\n")
-    prompt = """Du bist ein brillanter, unkonventioneller Aktien-Analyst für "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen aus der zweiten und dritten Reihe.
+    prompt = """Du bist ein brillanter, unkonventioneller Aktien-Analyst für fundamental starke Unternehmen aus der zweiten und dritten Reihe.
 Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell als essenzielle, aber oft übersehene B2B-Infrastruktur-Player, Zulieferer oder Dienstleister fungieren, bei denen ein unmittelbares und reales Upside-Potenzial auf absehbare Zeit (6-18 Monate) besteht.
 
 WICHTIGE REGELN:
 1. VERBOTENE MEGA-CAPS: Absolutes Veto gegen große Techwerte! Verbote beinhalten (aber nicht nur) NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD, AVGO.
-2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien wie ASML, SNPS, VRT oder SMCI. Gehe in deinem "Kopf" ganz bewusst aktuelle, unterrepräsentierte Nischenthemen durch (z.B. Automatisierungskomponenten, Spezialchemikalien für Batterien, Wasserinfrastruktur in Rechenzentren, Cybersecurity-Nischen, Nischen-Kupfer-Produzenten, hochspezialisierte Medizin-Dienstleister etc.) und picke dir dort gezielt Player heraus.
+2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien. Gehe in deinem "Kopf" ganz bewusst aktuelle, unterrepräsentierte Nischenthemen durch (z.B. Automatisierungskomponenten, Spezialchemikalien für Batterien, Wasserinfrastruktur in Rechenzentren, Cybersecurity-Nischen, Nischen-Kupfer-Produzenten, hochspezialisierte Medizin-Dienstleister etc.) und picke dir dort gezielt Player heraus.
 3. QUALITÄT VOR BEKANNTHEIT: Führe einen internen Screening-Prozess durch. Denke an 10 Mid-Cap-Kandidaten, sortiere die schwachen aus und präsentiere mir NUR die besten 3, die FUNDAMENTAL und REALISTISCH aktuell hervorragende Einstiegschancen (gute Balance aus Wachstum und passabler Bewertung) aufweisen.
 
 Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges anderes Wort.
@@ -115,7 +115,7 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 
 AUFTRAG:
 Schreibe eine ausgewogene, tiefgehende und rationale Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
-1. Das "Pick-and-Shovel" Bull Case: Für welchen großen Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate? (Verwende Fundamentaldaten, um das zu belegen.)
+1. Das fundamentale Bull Case: Für welchen großen Zukunftstrend oder Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate? (Verwende Fundamentaldaten, um das zu belegen.)
 2. Der rationale Realitätscheck: Beleuchte objektiv die wesentlichen Risiken (makroökonomisch, firmenintern oder wettbewerbsbedingt). Ist die aktuelle Bewertung eigentlich viel zu hoch oder gerechtfertigt angesichts des Wachstums? Lass dich nicht von kurzfristigen negativen News ablenken, sondern blicke auf das strukturelle Bild.
 3. Risiko-Rendite-Abwägung & Ehrliches Fazit: Wie steht das konkrete Downside-Risiko im Verhältnis zum Upside-Potenzial? Sei hierbei kein starrköpfiger Pessimist, der von jedem Investment abrät, sondern ein realistischer Strategieberater. Lohnt sich ein Investment für einen rational denkenden Investor? Positioniere dich klar (Kaufen, Warten auf Rücksetzer, Hände weg).
 
