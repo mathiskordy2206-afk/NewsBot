@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -239,6 +240,12 @@ def main():
     # 2. & 3. Daten abrufen und analysieren
     for sym in symbols:
         data = fetch_stock_data(sym)
+        
+        # Rate-Limiting für den Gemini Free-Tier verhindern (max 15 RPM)
+        # Wir warten hier ein paar Sekunden zwischen den Anfragen.
+        log.info("⏳ Kurze Pause für API-Rate-Limits...")
+        time.sleep(5)
+        
         report = critically_analyze_stock(model, data)
         all_reports.append((sym, data.get("name", sym), report))
         
