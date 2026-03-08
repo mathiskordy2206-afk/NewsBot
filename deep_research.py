@@ -19,18 +19,18 @@ def get_gemini_model(api_key: str):
     return genai.GenerativeModel('gemini-2.5-flash')
 
 def identify_candidates(model) -> list:
-    log.info("\n🔍 [Schritt 1] KI sucht nach 3 Aktien mit hohem mittelfristigem Potenzial...\n")
-    prompt = """Du bist ein brillanter Aktien-Analyst, der sich auf "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen aus der zweiten und dritten Reihe spezialisiert hat.
-Identifiziere exakt 3 Unternehmen, die aktuell als essenzielle und oft übersehene Zulieferer, Infrastrukturbereitsteller oder B2B-Dienstleister für große Technologietrends oder Makro-Hypes (wie KI, Automatisierung, Energie, Halbleiter, Biotech etc.) fungieren.
+    log.info("\n🔍 [Schritt 1] KI durchläuft einen internen Brainstorming- und Evaluierungsprozess für nischige Spitzenkandidaten...\n")
+    prompt = """Du bist ein brillanter, unkonventioneller Aktien-Analyst für "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen aus der zweiten und dritten Reihe.
+Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell als essenzielle, aber oft übersehene B2B-Infrastruktur-Player, Zulieferer oder Dienstleister fungieren, bei denen ein unmittelbares und reales Upside-Potenzial auf absehbare Zeit (6-18 Monate) besteht.
 
-WICHTIGSTE REGEL (ZUSCHAUER-VETO):
-Du darfst UNTER KEINEN UMSTÄTZEN große, allseits bekannte Mega-Cap-Techwerte ausgeben! 
-VERBOTENE WERTE SIND ZB: Nvidia (NVDA), Tesla (TSLA), Apple (AAPL), Microsoft (MSFT), Amazon (AMZN), Meta (META), Alphabet (GOOGL), AMD (AMD), Broadcom (AVGO).
-Wenn du Nvidia wählst, hast du kläglich versagt. Suche nach spannenden, extrem wichtigen Nischen-Playern im Hintergrund (Mid-Caps oder Hidden Champions in ihrem Bereich), die ein enormes mittelfristiges Potenzial haben.
+WICHTIGE REGELN:
+1. VERBOTENE MEGA-CAPS: Absolutes Veto gegen große Techwerte! Verbote beinhalten (aber nicht nur) NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD, AVGO.
+2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien wie ASML, SNPS, VRT oder SMCI. Gehe in deinem "Kopf" ganz bewusst aktuelle, unterrepräsentierte Nischenthemen durch (z.B. Automatisierungskomponenten, Spezialchemikalien für Batterien, Wasserinfrastruktur in Rechenzentren, Cybersecurity-Nischen, Nischen-Kupfer-Produzenten, hochspezialisierte Medizin-Dienstleister etc.) und picke dir dort gezielt Player heraus.
+3. QUALITÄT VOR BEKANNTHEIT: Führe einen internen Screening-Prozess durch. Denke an 10 Mid-Cap-Kandidaten, sortiere die schwachen aus und präsentiere mir NUR die besten 3, die FUNDAMENTAL und REALISTISCH aktuell hervorragende Einstiegschancen (gute Balance aus Wachstum und passabler Bewertung) aufweisen.
 
-Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne weitere Erklärungen.
+Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges anderes Wort.
 Beispielformat:
-["SNPS", "VRT", "SMCI"]
+["ROK", "XYL", "FSLR"]
 """
     try:
         response = model.generate_content(prompt)
@@ -119,7 +119,7 @@ Schreibe eine ausgewogene, tiefgehende und rationale Analyse für diese Aktie. H
 2. Der rationale Realitätscheck: Beleuchte objektiv die wesentlichen Risiken (makroökonomisch, firmenintern oder wettbewerbsbedingt). Ist die aktuelle Bewertung eigentlich viel zu hoch oder gerechtfertigt angesichts des Wachstums? Lass dich nicht von kurzfristigen negativen News ablenken, sondern blicke auf das strukturelle Bild.
 3. Risiko-Rendite-Abwägung & Ehrliches Fazit: Wie steht das konkrete Downside-Risiko im Verhältnis zum Upside-Potenzial? Sei hierbei kein starrköpfiger Pessimist, der von jedem Investment abrät, sondern ein realistischer Strategieberater. Lohnt sich ein Investment für einen rational denkenden Investor? Positioniere dich klar (Kaufen, Warten auf Rücksetzer, Hände weg).
 
-Schreibe professionell, analytisch und auf Deutsch. Nutze das bereitgestellte Datenmaterial (z.B. hohe KGV oder fragliches Umsatzwachstum), um deine Skepsis zu belegen. Mach es nicht künstlich lang, aber inhaltlich extrem dicht.
+Schreibe professionell, analytisch und auf Deutsch. Die 3 Aktien, die du in Schritt 1 übergeben hast, sollen in diesem Schritt nun nicht einfach "niedergemacht" werden! Ich möchte im Fazit eine wirkliche kauf- oder warte-Empfehlung für rationale Anleger – wenn die Aktie nichts taugt, hättest du sie in Schritt 1 gar nicht erst vorschlagen sollen. Zeige mir, *warum* du das Upside für so sicher hältst, belege aber auch, welche rationalen Risken existieren.
 
 Formatiere dein Ergebnis als reines HTML-Snippet.
 WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
