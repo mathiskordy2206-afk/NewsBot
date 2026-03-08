@@ -25,8 +25,8 @@ Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell als essenzielle
 
 WICHTIGE REGELN:
 1. VERBOTENE MEGA-CAPS: Absolutes Veto gegen große Techwerte! Verbote beinhalten (aber nicht nur) NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD, AVGO.
-2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien. Gehe in deinem "Kopf" ganz bewusst aktuelle, unterrepräsentierte Nischenthemen durch (z.B. Automatisierungskomponenten, Spezialchemikalien für Batterien, Wasserinfrastruktur in Rechenzentren, Cybersecurity-Nischen, Nischen-Kupfer-Produzenten, hochspezialisierte Medizin-Dienstleister etc.) und picke dir dort gezielt Player heraus.
-3. QUALITÄT VOR BEKANNTHEIT: Führe einen internen Screening-Prozess durch. Denke an 10 Mid-Cap-Kandidaten, sortiere die schwachen aus und präsentiere mir NUR die besten 3, die FUNDAMENTAL und REALISTISCH aktuell hervorragende Einstiegschancen (gute Balance aus Wachstum und passabler Bewertung) aufweisen.
+2. DYNAMISCHE STRATEGIE (SEHR WICHTIG): Wähle NICHT immer die gleichen Aktien. Sei extrem kreativ bei der Auswahl! Suche dir 3 völlig unterschiedliche Branchen (z.B. 1x Wasser-Infrastruktur für Rechenzentren, 1x hochspezialisierte Agrar-Chemie, 1x Nischen-Cybersecurity) und picke dir dort gezielt Player heraus.
+3. QUALITÄT VOR BEKANNTHEIT: Führe einen internen Screening-Prozess durch. Denke an 10 Mid-Cap-Kandidaten, sortiere die schwachen aus und präsentiere mir NUR die besten 3.
 
 Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges anderes Wort.
 Beispielformat:
@@ -114,14 +114,16 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 - Letzte News-Schlagzeilen: {'; '.join(stock_data.get('recent_news', []))}
 
 AUFTRAG:
-Schreibe eine ausgewogene, tiefgehende und rationale Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
-1. Das fundamentale Bull Case: Für welchen großen Zukunftstrend oder Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate? (Verwende Fundamentaldaten, um das zu belegen.)
-2. Der rationale Realitätscheck: Beleuchte objektiv die wesentlichen Risiken (makroökonomisch, firmenintern oder wettbewerbsbedingt). Ist die aktuelle Bewertung eigentlich viel zu hoch oder gerechtfertigt angesichts des Wachstums? Lass dich nicht von kurzfristigen negativen News ablenken, sondern blicke auf das strukturelle Bild.
-3. Risiko-Rendite-Abwägung & Ehrliches Fazit: Wie steht das konkrete Downside-Risiko im Verhältnis zum Upside-Potenzial? Sei hierbei kein starrköpfiger Pessimist, der von jedem Investment abrät, sondern ein realistischer Strategieberater. Lohnt sich ein Investment für einen rational denkenden Investor? Positioniere dich klar (Kaufen, Warten auf Rücksetzer, Hände weg).
+Schreibe eine strukturierte, professionelle Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
+1. Kurze Vorstellung: Was macht das Unternehmen (in 2 Sätzen) und warum ist es für den jeweiligen Sektor so wichtig?
+2. Wichtige Kennzahlen: Fasse die zur Verfügung gestellten Daten (KGV, Umsatzwachstum, etc.) in 1-2 kurzen Sätzen zusammen.
+3. Das eigentliche Potenzial: Warum hat die Aktie in der aktuellen Lage und mittelfristig großes Potenzial? Warum ist *genau jetzt* der richtige Moment, einzusteigen?
+4. Die kritische Abwägung: Was könnte schiefgehen? Beleuchte realistische Risiken, Herausforderungen oder ob sie schon zu hoch bewertet ist.
+5. Klare Entscheidung: Ist die Aktie ein Kauf oder sollte man lieber noch abwarten? Fälle am Ende ein klares Urteil.
 
-Schreibe professionell, analytisch und auf Deutsch. Die 3 Aktien, die du in Schritt 1 übergeben hast, sollen in diesem Schritt nun nicht einfach "niedergemacht" werden! Ich möchte im Fazit eine wirkliche kauf- oder warte-Empfehlung für rationale Anleger – wenn die Aktie nichts taugt, hättest du sie in Schritt 1 gar nicht erst vorschlagen sollen. Zeige mir, *warum* du das Upside für so sicher hältst, belege aber auch, welche rationalen Risken existieren.
+Schreibe im Berater-Stil auf Deutsch. Zeige mir, dass du die Vor- und Nachteile rational gegeneinander aufgewogen hast.
 
-Formatiere dein Ergebnis als reines HTML-Snippet.
+Formatiere dein Ergebnis als reines HTML-Snippet. Nutze <h3> für die Zwischenüberschriften der 5 Punkte und <p> für den Text. 
 WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html !
 """
     try:
