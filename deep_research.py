@@ -20,13 +20,17 @@ def get_gemini_model(api_key: str):
 
 def identify_candidates(model) -> list:
     log.info("\n🔍 [Schritt 1] KI sucht nach 3 Aktien mit hohem mittelfristigem Potenzial...\n")
-    prompt = """Du bist ein brillanter Aktien-Analyst, der sich auf sogenannte "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen spezialisiert hat.
-Identifiziere exakt 3 Unternehmen, die aktuell als essenzielle und oft übersehene Zulieferer, Infrastrukturbereitsteller oder B2B-Dienstleister für große Technologietrends oder Makro-Hypes (wie KI, Automatisierung, Energie, Biotech etc.) fungieren.
-Vermeide unbedingt die allgemein bekannten Namen wie Nvidia, Apple, Microsoft, Tesla oder Amazon. Suche nach nischigen, extrem wichtigen Playern im Hintergrund (z.B. Equipment-Hersteller, Spezialchemie, hochspezialisierte Software, Halbleiter-Zulieferer), die ein enormes kurz- bis mittelfristiges Potenzial haben.
+    prompt = """Du bist ein brillanter Aktien-Analyst, der sich auf "Pick-and-Shovel" (Schaufelverkäufer) Unternehmen aus der zweiten und dritten Reihe spezialisiert hat.
+Identifiziere exakt 3 Unternehmen, die aktuell als essenzielle und oft übersehene Zulieferer, Infrastrukturbereitsteller oder B2B-Dienstleister für große Technologietrends oder Makro-Hypes (wie KI, Automatisierung, Energie, Halbleiter, Biotech etc.) fungieren.
+
+WICHTIGSTE REGEL (ZUSCHAUER-VETO):
+Du darfst UNTER KEINEN UMSTÄTZEN große, allseits bekannte Mega-Cap-Techwerte ausgeben! 
+VERBOTENE WERTE SIND ZB: Nvidia (NVDA), Tesla (TSLA), Apple (AAPL), Microsoft (MSFT), Amazon (AMZN), Meta (META), Alphabet (GOOGL), AMD (AMD), Broadcom (AVGO).
+Wenn du Nvidia wählst, hast du kläglich versagt. Suche nach spannenden, extrem wichtigen Nischen-Playern im Hintergrund (Mid-Caps oder Hidden Champions in ihrem Bereich), die ein enormes mittelfristiges Potenzial haben.
 
 Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne weitere Erklärungen.
 Beispielformat:
-["ASML", "SYPS", "VRT"]
+["SNPS", "VRT", "SMCI"]
 """
     try:
         response = model.generate_content(prompt)
@@ -110,10 +114,10 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 - Letzte News-Schlagzeilen: {'; '.join(stock_data.get('recent_news', []))}
 
 AUFTRAG:
-Schreibe eine tiefgehende, kritische Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
-1. Das "Pick-and-Shovel" Bull Case: Für welchen großen Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate?
-2. Der kritische Realitätscheck (Bear Case): Welche makroökonomischen, firmeninternen oder wettbewerbsbedingten Risiken werden übersehen? Ist die aktuelle Bewertung eigentlich viel zu hoch?
-3. Risiko-Rendite-Abwägung & Knallhartes Fazit: Wie steht das konkrete downside-Risiko im Verhältnis zum upside-Potenzial? Ist es ein gutes Investment für einen rationalen Anleger oder eher eine Wette? Positioniere dich klar (Kaufen, Warten, Hände weg).
+Schreibe eine ausgewogene, tiefgehende und rationale Analyse für diese Aktie. Halte dich exakt an folgende Struktur:
+1. Das "Pick-and-Shovel" Bull Case: Für welchen großen Hype ist dieses Unternehmen im Hintergrund unverzichtbar? Warum hat diese Aktie vermutlich hohes Potenzial für die nächsten 6-18 Monate? (Verwende Fundamentaldaten, um das zu belegen.)
+2. Der rationale Realitätscheck: Beleuchte objektiv die wesentlichen Risiken (makroökonomisch, firmenintern oder wettbewerbsbedingt). Ist die aktuelle Bewertung eigentlich viel zu hoch oder gerechtfertigt angesichts des Wachstums? Lass dich nicht von kurzfristigen negativen News ablenken, sondern blicke auf das strukturelle Bild.
+3. Risiko-Rendite-Abwägung & Ehrliches Fazit: Wie steht das konkrete Downside-Risiko im Verhältnis zum Upside-Potenzial? Sei hierbei kein starrköpfiger Pessimist, der von jedem Investment abrät, sondern ein realistischer Strategieberater. Lohnt sich ein Investment für einen rational denkenden Investor? Positioniere dich klar (Kaufen, Warten auf Rücksetzer, Hände weg).
 
 Schreibe professionell, analytisch und auf Deutsch. Nutze das bereitgestellte Datenmaterial (z.B. hohe KGV oder fragliches Umsatzwachstum), um deine Skepsis zu belegen. Mach es nicht künstlich lang, aber inhaltlich extrem dicht.
 
