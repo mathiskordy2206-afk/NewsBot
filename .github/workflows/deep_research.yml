@@ -33,6 +33,7 @@ jobs:
           
       - name: "🕵️‍♂️ Deep Research ausführen"
         env:
+          GEMINI_RESEARCH_API_KEY: ${{ secrets.GEMINI_RESEARCH_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}

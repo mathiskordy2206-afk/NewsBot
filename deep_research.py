@@ -20,6 +20,8 @@ def get_gemini_model(api_key: str):
     # Using the flash model as requested in previous parts of the project
     return genai.GenerativeModel('gemini-2.5-flash')
 
+import re
+
 def identify_candidates(model) -> list:
     log.info("\n🔍 [Schritt 1] KI sucht nach fundamental starken, nicht-mainstream Aktien...\n")
     prompt = """Du bist ein datengetriebener Aktienanalyst für institutionelle Investoren.
@@ -34,21 +36,42 @@ Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Ti
 Beispielformat:
 ["ROK", "XYL", "FSLR"]
 """
-    try:
-        response = model.generate_content(prompt)
-        text = response.text.replace("```json", "").replace("```", "").strip()
-        symbols = json.loads(text)
-        if not isinstance(symbols, list) or len(symbols) == 0:
-            raise ValueError("Erwartetes JSON-Array nicht empfangen.")
-        
-        # Begrenze auf 3 falls die KI zu viele liefert
-        symbols = [str(s).strip().upper() for s in symbols[:3]]
-        log.info(f"✅ Identifizierte Kandidaten: {', '.join(symbols)}")
-        return symbols
-    except Exception as e:
-        log.error(f"❌ Fehler bei der Kandidatensuche: {e}")
-        log.error(f"Rohausgabe der KI: {response.text if 'response' in locals() else 'N/A'}")
-        sys.exit(1)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            
+            # Check for safety filter block
+            if not response.parts:
+                log.warning(f"⚠️ Versuch {attempt+1}: Leere Antwort generiert (Möglicherweise durch Safety-Filter blockiert).")
+                time.sleep(10)
+                continue
+                
+            text = response.text.replace("```json", "").replace("```", "").strip()
+            
+            # Robust JSON extraction
+            match = re.search(r'\[.*\]', text, re.DOTALL)
+            if match:
+                text = match.group(0)
+                
+            symbols = json.loads(text)
+            if not isinstance(symbols, list) or len(symbols) == 0:
+                raise ValueError("Erwartetes JSON-Array nicht empfangen.")
+            
+            # Begrenze auf 3 falls die KI zu viele liefert
+            symbols = [str(s).strip().upper() for s in symbols[:3]]
+            log.info(f"✅ Identifizierte Kandidaten: {', '.join(symbols)}")
+            return symbols
+        except Exception as e:
+            log.warning(f"⚠️ Versuch {attempt+1} fehlgeschlagen: {e}")
+            if hasattr(response, 'text'):
+                log.warning(f"Rohausgabe der KI: {response.text}")
+            elif hasattr(response, 'candidates') and response.candidates:
+                log.warning(f"Finish Reason: {response.candidates[0].finish_reason}")
+            time.sleep(10) # Pausiere vor dem nächsten Versuch
+            
+    log.error("❌ Fehler bei der Kandidatensuche: Maximale Anzahl an Versuchen erreicht.")
+    sys.exit(1)
 
 def fetch_stock_data(symbol: str) -> dict:
     log.info(f"   => Lade Live-Daten für {symbol}...")
@@ -131,12 +154,22 @@ Erstelle eine präzise, faktenbasierte und strukturierte Analyse. Halte dich exa
 Formatiere dein Ergebnis als reines HTML-Snippet. Nutze <h3> für die Zwischenüberschriften der 5 Punkte und <p> für den Text. 
 WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html , Markdown!
 """
-    try:
-        response = model.generate_content(prompt)
-        text = response.text.replace("```html", "").replace("```", "").strip()
-        return text
-    except Exception as e:
-        return f"Fehler bei der KI-Analyse für {symbol}: {e}"
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            if not response.parts:
+                log.warning(f"⚠️ Versuch {attempt+1}: Leere Antwort generiert (Möglicherweise durch Safety-Filter blockiert).")
+                time.sleep(10)
+                continue
+                
+            text = response.text.replace("```html", "").replace("```", "").strip()
+            return text
+        except Exception as e:
+            log.warning(f"⚠️ Versuch {attempt+1} für Analyse von {symbol} fehlgeschlagen: {e}")
+            time.sleep(10)
+            
+    return f"<p style='color:red;'>Fehler bei der KI-Analyse für {symbol} nach mehreren Versuchen. (API Rate Limits oder Safety-Blocker).</p>"
 
 def build_email_html(reports) -> str:
     now = datetime.now(timezone(timedelta(hours=1)))
@@ -225,10 +258,13 @@ def send_email(html_content, smtp_server="smtp.gmail.com", smtp_port=587):
         return False
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GEMINI_RESEARCH_API_KEY")
     if not api_key:
-        log.error("❌ FEHLER: Umgebungsvariable GEMINI_API_KEY ist nicht gesetzt.")
-        log.error("Bitte setze sie mit: export GEMINI_API_KEY='dein-key'")
+        api_key = os.environ.get("GEMINI_API_KEY") # Fallback
+        
+    if not api_key:
+        log.error("❌ FEHLER: Umgebungsvariable GEMINI_RESEARCH_API_KEY ist nicht gesetzt.")
+        log.error("Bitte setze sie mit: export GEMINI_RESEARCH_API_KEY='dein-key'")
         sys.exit(1)
         
     model = get_gemini_model(api_key)
