@@ -15,10 +15,21 @@ import google.generativeai as genai
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("DeepResearch")
 
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
 def get_gemini_model(api_key: str):
     genai.configure(api_key=api_key)
     # Using the flash model as requested in previous parts of the project
-    return genai.GenerativeModel('gemini-2.5-flash')
+    
+    # Disable safety settings as financial terms often trigger false positives
+    safety_settings = {
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+    
+    return genai.GenerativeModel('gemini-2.5-flash', safety_settings=safety_settings)
 
 import re
 
@@ -159,7 +170,10 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <
         try:
             response = model.generate_content(prompt)
             if not response.parts:
-                log.warning(f"⚠️ Versuch {attempt+1}: Leere Antwort generiert (Möglicherweise durch Safety-Filter blockiert).")
+                reason = "Unbekannt"
+                if hasattr(response, 'candidates') and response.candidates:
+                    reason = response.candidates[0].finish_reason
+                log.warning(f"⚠️ Versuch {attempt+1}: Leere Antwort generiert (Möglicherweise blockiert. Finish Reason: {reason}).")
                 time.sleep(10)
                 continue
                 
@@ -167,6 +181,13 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <
             return text
         except Exception as e:
             log.warning(f"⚠️ Versuch {attempt+1} für Analyse von {symbol} fehlgeschlagen: {e}")
+            if hasattr(response, 'text'):
+                try:
+                    log.warning(f"Rohausgabe der KI: {response.text}")
+                except:
+                    pass
+            elif hasattr(response, 'candidates') and response.candidates:
+                log.warning(f"Finish Reason: {response.candidates[0].finish_reason}")
             time.sleep(10)
             
     return f"<p style='color:red;'>Fehler bei der KI-Analyse für {symbol} nach mehreren Versuchen. (API Rate Limits oder Safety-Blocker).</p>"
