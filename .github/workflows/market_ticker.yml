@@ -1,0 +1,37 @@
+name: 📊 Daily Market Ticker
+
+on:
+  schedule:
+    # Jeden Montag bis Freitag um 21:30 UTC (= 22:30 MEZ, kurz nach US-Börsenschluss)
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:
+    # Manueller Trigger zum Testen
+
+jobs:
+  run_ticker:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "🔄 Repository auschecken"
+        uses: actions/checkout@v4
+        
+      - name: "🐍 Python Setup"
+        uses: actions/setup-python@v5
+        with:
+            python-version: '3.12'
+            cache: 'pip'
+          
+      - name: "📦 Abhängigkeiten installieren"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: "📊 Market Ticker ausführen"
+        env:
+          GEMINI_TICKER_API_KEY: ${{ secrets.GEMINI_TICKER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        run: |
+          python market_ticker.py
