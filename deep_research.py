@@ -49,6 +49,7 @@ Beispielformat:
 """
     max_retries = 3
     for attempt in range(max_retries):
+        response = None
         try:
             response = model.generate_content(prompt)
             
@@ -167,6 +168,7 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <
 """
     max_retries = 3
     for attempt in range(max_retries):
+        response = None
         try:
             response = model.generate_content(prompt)
             if not response.parts:
