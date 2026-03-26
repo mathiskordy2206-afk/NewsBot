@@ -99,7 +99,7 @@ def generate_ai_summary(market_data, winners, losers, news_headlines, api_key):
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+                model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Daten für Prompt aufbereiten
         market_str = "\n".join([f"- {name}: {d['price']:.2f} ({d['pct_change']:.2f}%)" for name, d in market_data.items() if "price" in d])
@@ -152,48 +152,86 @@ Formatiere die Antwort in gut strukturiertem HTML (Nutzung von <h3>, <p>, <ul>, 
 
 def build_email_html(ai_summary):
     now = datetime.now(timezone(timedelta(hours=1)))
-    date_str = now.strftime("%d.%m.%Y")
+    date_str = now.strftime("%d. %B %Y")
+    months_de = {
+        "January": "Januar", "February": "Februar", "March": "März",
+        "April": "April", "May": "Mai", "June": "Juni",
+        "July": "Juli", "August": "August", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Dezember",
+    }
+    for en, de in months_de.items():
+        date_str = date_str.replace(en, de)
     
     html = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Daily Market Ticker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Closing Bell Ticker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {{
+        --bg: #0f172a;
+        --card: #1e293b;
+        --border: #334155;
+        --accent: #38bdf8;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+    }}
+    body {{
+        margin: 0; padding: 0; background-color: var(--bg);
+        font-family: 'Inter', -apple-system, sans-serif;
+        color: var(--text); line-height: 1.6;
+    }}
+    .container {{
+        max-width: 600px; margin: 40px auto; padding: 0 20px;
+    }}
+    .header {{
+        text-align: left; padding-bottom: 30px; border-bottom: 1px solid var(--border);
+        margin-bottom: 30px;
+    }}
+    .brand {{
+        font-size: 20px; font-weight: 800; letter-spacing: -1px;
+        color: var(--accent); text-transform: uppercase;
+    }}
+    .date {{
+        font-size: 14px; color: var(--text-muted); font-weight: 600;
+    }}
+    .card {{
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 16px; padding: 30px; margin-bottom: 30px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }}
+    .card h3 {{
+        margin-top: 0; color: var(--accent); font-size: 14px;
+        text-transform: uppercase; letter-spacing: 1px;
+    }}
+    .footer {{
+        text-align: center; font-size: 11px; color: var(--text-muted);
+        padding-top: 20px;
+    }}
+    hr {{ border: 0; border-top: 1px solid var(--border); margin: 20px 0; }}
+    ul {{ padding-left: 20px; }}
+    li {{ margin-bottom: 10px; }}
+    a {{ color: var(--accent); text-decoration: none; }}
+</style>
 </head>
-<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f8fafc">
-    <tr>
-        <td align="center" style="padding:40px 15px;">
-            <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="max-width:600px;border-radius:12px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.05);border:1px solid #e2e8f0;">
-                
-                <!-- HEADER -->
-                <tr>
-                    <td bgcolor="#1e293b" style="padding:35px 30px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:24px;letter-spacing:0.5px;">🔔 Closing Bell Ticker</h1>
-                        <p style="margin:8px 0 0 0;color:#94a3b8;font-size:14px;">Börsenschluss-Update &middot; {date_str}</p>
-                    </td>
-                </tr>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="brand">CLOSING BELL TICKER</div>
+        <div class="date">{date_str} • Wall Street Update</div>
+    </div>
 
-                <!-- CONTENT -->
-                <tr>
-                    <td style="padding:40px 30px;font-size:15px;color:#334155;line-height:1.6;">
-                        {ai_summary}
-                    </td>
-                </tr>
-                
-                <!-- FOOTER -->
-                <tr>
-                    <td bgcolor="#f1f5f9" style="padding:20px 30px;border-top:1px solid #e2e8f0;text-align:center;">
-                        <p style="margin:0;font-size:12px;color:#64748b;">
-                            Generiert durch Market Ticker Bot &bull; Gemini Flash<br/>
-                            Vollautomatisches tägliches Marktsummari!
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
+    <div class="card">
+        {ai_summary}
+    </div>
+
+    <div class="footer">
+        <p>NEWSBOT TICKER v2.0 • GENERATED BY GEMINI 2.0 FLASH</p>
+        <p style="opacity: 0.5;">Diese Informationen dienen nur zu Informationszwecken und stellen keine Anlageberatung dar.</p>
+    </div>
+</div>
 </body>
 </html>
 """

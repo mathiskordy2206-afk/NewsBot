@@ -29,19 +29,22 @@ def get_gemini_model(api_key: str):
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     }
     
-    return genai.GenerativeModel('gemini-2.5-flash', safety_settings=safety_settings)
+    return genai.GenerativeModel('gemini-2.0-flash', safety_settings=safety_settings)
 
 import re
 
-def identify_candidates(model) -> list:
+def identify_candidates(model, excluded_symbols=None) -> list:
+    if excluded_symbols is None:
+        excluded_symbols = []
     log.info("\n🔍 [Schritt 1] KI sucht nach fundamental starken, nicht-mainstream Aktien...\n")
     prompt = """Du bist ein datengetriebener Aktienanalyst für institutionelle Investoren.
-Deine Aufgabe ist es, exakt 3 Unternehmen zu finden, die aktuell ein enormes, realistisches Upside-Potenzial für die nächsten 6 bis 18 Monate bieten.
+Deine Aufgabe ist es, zwischen 2 und 5 Unternehmen zu finden, die aktuell ein enormes, realistisches Upside-Potenzial für die nächsten 6 bis 18 Monate bieten. Wenn du aktuell nur 2 sehr gute findest, reicht das aus (maximal 5).
 
 STRIKTE REGELN ZUR AUSWAHL:
 1. KEIN MAINSTREAM: Wähle keine Unternehmen, die täglich in den Nachrichten sind (z.B. NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOGL, AMD). Suche in der zweiten Reihe nach hochprofitablen oder stark wachsenden Hidden Champions.
-2. DYNAMIK & VIELFALT: Überlege dir 3 völlig unterschiedliche, spannende Sektoren (z.B. Industrieautomatisierung, spezialisierte Software, Medizintechnik, Infrastruktur, Nischen-Chemie) und wähle aus jedem Sektor den attraktivsten Player.
-3. FUNDAMENTALE STÄRKE: Das Unternehmen muss einen echten, greifbaren Wachstumstreiber oder Burggraben haben (keine reinen Meme- oder Zockeraktien). Führe im Hintergrund ein breites Screening von mind. 10 Aktien durch und wähle nur die besten 3 aus.
+2. DYNAMIK & VIELFALT: Überlege dir verschiedene, spannende Sektoren (z.B. Industrieautomatisierung, spezialisierte Software, Medizintechnik, Infrastruktur, Nischen-Chemie) und wähle aus diesen die attraktivsten Player.
+3. FUNDAMENTALE STÄRKE: Das Unternehmen muss einen echten, greifbaren Wachstumstreiber oder Burggraben haben (keine reinen Meme- oder Zockeraktien). Führe im Hintergrund ein breites Screening von mind. 10 Aktien durch und wähle nur die besten 2 bis 5 aus (je nachdem, wie viele das Kriterium wirklich erfüllen).
+4. AUSGESCHLOSSENE AKTIEN: {', '.join(excluded_symbols) if excluded_symbols else 'Keine'}. Diese Aktien hast du heute schon analysiert, wähle sie nicht nochmal!
 
 Gib als Antwort AUSSCHLIESSLICH ein valides JSON-Array mit den amerikanischen Tickersymbolen zurück, ohne Markdown, ohne ein einziges drittes Wort.
 Beispielformat:
@@ -62,16 +65,24 @@ Beispielformat:
             text = response.text.replace("```json", "").replace("```", "").strip()
             
             # Robust JSON extraction
-            match = re.search(r'\[.*\]', text, re.DOTALL)
+            match = re.search(r'\[.*?\]', text, re.DOTALL)
             if match:
                 text = match.group(0)
                 
-            symbols = json.loads(text)
+            try:
+                symbols = json.loads(text)
+            except json.JSONDecodeError:
+                log.warning(f"⚠️ Versuch {attempt+1}: Konnte JSON nicht parsen. Rohausgabe: {text}")
+                time.sleep(10)
+                continue
+                
             if not isinstance(symbols, list) or len(symbols) == 0:
-                raise ValueError("Erwartetes JSON-Array nicht empfangen.")
+                log.warning(f"⚠️ Versuch {attempt+1}: Erwartetes JSON-Array nicht empfangen.")
+                time.sleep(10)
+                continue
             
-            # Begrenze auf 3 falls die KI zu viele liefert
-            symbols = [str(s).strip().upper() for s in symbols[:3]]
+            # Begrenze auf 5 falls die KI zu viele liefert
+            symbols = [str(s).strip().upper() for s in symbols[:5]]
             log.info(f"✅ Identifizierte Kandidaten: {', '.join(symbols)}")
             return symbols
         except Exception as e:
@@ -95,14 +106,14 @@ def fetch_stock_data(symbol: str) -> dict:
         ticker = yf.Ticker(symbol, session=session)
         info = ticker.info
         
-        current_price = info.get('currentPrice', info.get('regularMarketPrice', 'N/A'))
-        trailing_pe = info.get('trailingPE', 'N/A')
-        forward_pe = info.get('forwardPE', 'N/A')
-        recommendation = info.get('recommendationKey', 'N/A')
-        target_price = info.get('targetMeanPrice', 'N/A')
+        current_price = info.get('currentPrice', info.get('regularMarketPrice', 'Keine Angabe'))
+        trailing_pe = info.get('trailingPE', 'Keine Angabe')
+        forward_pe = info.get('forwardPE', 'Keine Angabe')
+        recommendation = info.get('recommendationKey', 'Keine Angabe')
+        target_price = info.get('targetMeanPrice', 'Keine Angabe')
         short_name = info.get('shortName', symbol)
-        debt_to_equity = info.get('debtToEquity', 'N/A')
-        revenue_growth = info.get('revenueGrowth', 'N/A')
+        debt_to_equity = info.get('debtToEquity', 'Keine Angabe')
+        revenue_growth = info.get('revenueGrowth', 'Keine Angabe')
         
         # Get recent news
         recent_news = []
@@ -140,7 +151,7 @@ def critically_analyze_stock(model, stock_data: dict) -> str:
     
     log.info(f"\n🧠 [Schritt 3] Erstelle Deep Dive und kritische Analyse für {name} ({symbol})...")
     
-    prompt = f"""Du bist ein extrem kritischer und skeptischer Investment-Analyst (ein "Gegen-den-Strom"-Denker). Deine Aufgabe ist es, einen schonungslosen, detaillierten Deep-Dive zu einer Aktie zu schreiben, die zuvor als positiv identifiziert wurde.
+    prompt = f"""Du bist ein professioneller Equity Research Analyst einer renommierten Investmentbank. Deine Aufgabe ist es, eine objektive, datengetriebene und fundierte Bewertung einer Aktie vorzunehmen. Du wägst Chancen (Upside) und Risiken (Downside) realistisch ab und triffst am Ende eine klare Investmententscheidung: KAUFEN (Buy), HALTEN (Hold) oder VERKAUFEN (Sell).
 
 Aktie: {name} ({symbol})
 
@@ -155,13 +166,17 @@ Aktuelle Live-Finanzdaten von Yahoo Finance:
 - Letzte News-Schlagzeilen: {'; '.join(stock_data.get('recent_news', []))}
 
 AUFTRAG:
-Erstelle eine präzise, faktenbasierte und strukturierte Analyse. Halte dich exakt an diesen strukturierten Output und vermeide jegliches ausschweifende "Gequassel":
+Evaluiere diese Aktie kritisch, aber fair. Berücksichtige das Wachstumspotenzial, die Bewertung (KGV) und die finanzielle Stabilität (Verschuldung). 
 
-1. Kurze Vorstellung: Was macht das Unternehmen (in maximal 2 Sätzen) und warum ist sein Geschäftsmodell stark?
-2. Wichtige Kennzahlen: Fasse die zur Verfügung gestellten realen Daten (KGV, Umsatzwachstum, Verschuldung etc.) sachlich in 1-2 Sätzen zusammen.
-3. Warum diese Aktie Potenzial hat: Erkläre den konkreten Katalysator. Warum ist realistischerweise mit einem Upside in den nächsten 6-18 Monaten zu rechnen? Warum ist *genau jetzt* der richtige Kaufmoment?
-4. Kritische Abwägung (Risiko): Beleuchte realistische Risiken. Wo liegen die Gefahren in der Bilanz oder im Marktumfeld?
-5. Klare Entscheidung: Wäge die Argumente aus Punkt 3 und 4 gegeneinander ab und fälle ein eindeutiges Urteil (Kaufen oder Abwarten). Kein Schwammig-Reden.
+WICHTIGSTE REGEL: Wenn du nach deiner professionellen Analyse zu dem Schluss kommst, dass das Rating aktuell "HALTEN" (Hold) oder "VERKAUFEN" (Sell) ist (z.B. weil die Bewertung zu teuer ist oder die Risiken überwiegen), antworte AUSSCHLIESSLICH mit dem Wort: "REJECT".
+
+Wenn jedoch das Chance-Risiko-Verhältnis exzellent ist und du ein klares "KAUFEN" (Buy) Rating für die nächsten 6-18 Monate vergibst, schreibe ein professionelles Analysten-Statement mit dem folgenden genauen Output-Format:
+
+1. Investment Thesis: Warum genau ist dieses Unternehmen aktuell attraktiv positioniert? (max. 2 Sätze)
+2. Finanzielle Gesundheit & Bewertung: Eine sachliche Einschätzung der bereitgestellten Daten (KGV, Wachstum, Bilanz) im Kontext.
+3. Katalysatoren (Upside): Welche konkreten Treiber werden den Kurs in den nächsten 6-18 Monaten antreiben?
+4. Realistische Risiken (Downside): Was könnte schiefgehen? (Objektive Risikobewertung, keine Panikmache).
+5. Analysten Fazit: Eine abschließende Begründung deiner KAUF-Empfehlung mit einem Ausblick.
 
 Formatiere dein Ergebnis als reines HTML-Snippet. Nutze <h3> für die Zwischenüberschriften der 5 Punkte und <p> für den Text. 
 WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li>, <strong>, <em> Tags! Verbotene Tags: <html>, <head>, <body>, ```html , Markdown!
@@ -224,13 +239,13 @@ def build_email_html(reports) -> str:
                 <tr>
                     <td bgcolor="#0f172a" style="padding:40px 30px;background-color:#0f172a;">
                         <h1 style="margin:0 0 5px 0;color:#ffffff;font-size:28px;letter-spacing:-0.5px;">🕵️‍♂️ Deep Research Report</h1>
-                        <p style="margin:0;color:#94a3b8;font-size:16px;">Kritische KI-Aktienanalyse vom {date_str}</p>
+                        <p style="margin:0;color:#94a3b8;font-size:16px;">Analysten-Rating vom {date_str}</p>
                     </td>
                 </tr>
                 <!-- CONTENT -->
                 <tr>
                     <td style="padding:35px 30px 10px 30px;">
-                        <p style="margin:0 0 20px 0;font-size:15px;color:#475569;">Hier sind die heutigen 3 Kandidaten für ein außerordentliches mittelfristiges Anlagepotenzial – gnadenlos und kritisch hinterfragt:</p>
+                        <p style="margin:0 0 20px 0;font-size:15px;color:#475569;">Hier sind die heutigen Aktien, die nach objektiver Analyse unseres virtuellen Investmentbankers ein klares <strong>KAUFEN (Buy)</strong> Rating erhalten haben:</p>
                         {reports_html}
                     </td>
                 </tr>
@@ -300,18 +315,47 @@ def main():
     print("="*60 + "\n")
     
     all_reports = []
+    checked_symbols = set()
+    max_search_rounds = 5
+    current_round = 0
+    min_required_stocks = 1
     
-    # 2. & 3. Daten abrufen und analysieren
-    for sym in symbols:
-        data = fetch_stock_data(sym)
+    while len(all_reports) < min_required_stocks and current_round < max_search_rounds:
+        current_round += 1
+        log.info(f"\n🔄 --- SUCHRUNDE {current_round} VON {max_search_rounds} ---")
         
-        # Rate-Limiting für den Gemini Free-Tier verhindern (max 15 RPM)
-        # Wir warten hier ein paar Sekunden zwischen den Anfragen.
-        log.info("⏳ Kurze Pause für API-Rate-Limits...")
-        time.sleep(5)
+        # 1. Kandidaten finden (bereits geprüfte ausschließen)
+        symbols = identify_candidates(model, excluded_symbols=list(checked_symbols))
         
-        report = critically_analyze_stock(model, data)
-        all_reports.append((sym, data.get("name", sym), report))
+        # 2. & 3. Daten abrufen und analysieren
+        for sym in symbols:
+            if sym in checked_symbols:
+                continue # Verhindere doppelte Checks
+                
+            checked_symbols.add(sym)
+            data = fetch_stock_data(sym)
+            
+            # Rate-Limiting für den Gemini Free-Tier verhindern (max 15 RPM)
+            log.info("⏳ Kurze Pause für API-Rate-Limits...")
+            time.sleep(5)
+            
+            report = critically_analyze_stock(model, data)
+            if report and "REJECT" not in report:
+                log.info(f"✅ {sym} hat das Analysten-Rating BElSTANDEN! Wird übernommen.")
+                all_reports.append((sym, data.get("name", sym), report))
+                if len(all_reports) >= 3: # Bei max 3 guten hören wir auf pro Tagesmail
+                    break
+            else:
+                log.info(f"⏭️ {sym} wurde von der KI als 'Halten / Verkaufen' eingestuft und ausgemustert.")
+                
+        if len(all_reports) > 0:
+            log.info(f"\n🎉 {len(all_reports)} exzellente Anlage(n) gefunden! Breche Suche ab.")
+            break
+            
+    if not all_reports:
+        log.warning(f"❌ Auch nach {max_search_rounds} Runden hat KEINE Aktie das strikte Bank-Rating 'Buy' erhalten.")
+        log.info("✅ Beende Lauf ohne E-Mail-Versand, da kein passendes Investment gefunden wurde.")
+        sys.exit(0)
         
     # Ergebnisse hübsch im Terminal ausgeben (jetzt mit HTML Tags, aber nützlich zum Debuggen)
     print("\n\n" + "#"*60)
