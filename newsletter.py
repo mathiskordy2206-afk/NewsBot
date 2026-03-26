@@ -574,8 +574,8 @@ def build_newsletter_html(
     sentiment = gemini_result.get("market_sentiment", "neutral")
     sentiment_icons = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}
     sentiment_labels = {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "NEUTRAL"}
-
-    # Depot-Daten vorbereiten
+    
+    # Depot-Daten initialisieren
     total_perf_pct = 0.0
     total_profit_val = 0.0
     top_stock_name = "N/A"
@@ -585,48 +585,17 @@ def build_newsletter_html(
     history_chart = ""
 
     if depot_results:
-        # Hier könnten wir noch tiefer in die portfolio_data greifen um top/flop zu bestimmen
-        # Oder wir nutzen die Summary-Logic aus depot_analyzer
-        # Für den Moment extrahieren wir die Key-Metriken:
         history_chart = depot_results.get("history_chart_url", "")
+        total_perf_pct = depot_results.get("total_perf_pct", 0.0)
+        total_profit_val = depot_results.get("total_profit", 0.0)
         
-        # Top/Flop Berechnung (vereinfacht für das Template)
-        p_data = depot_results.get("portfolio_data", {})
-        p_config = depot_results.get("portfolio_config", {}).get("portfolio", [])
+        top_stock = depot_results.get("top_stock", {})
+        top_stock_name = top_stock.get("name", "N/A")
+        top_stock_perf = round(top_stock.get("perf", 0.0), 2)
         
-        stocks_with_perf = []
-        total_start = 0.0
-        total_curr = 0.0
-
-        for item in p_config:
-            sym = item["symbol"]
-            if sym in p_data and p_data[sym].get("current_price"):
-                curr_p = p_data[sym]["current_price"]
-                start_p = p_data[sym].get("start_price", curr_p)
-                
-                # Sanity Check gegen NaN/None
-                if curr_p is None or math.isnan(curr_p): continue
-                if start_p is None or math.isnan(start_p): start_p = curr_p
-                
-                perf = p_data[sym].get("performance_1w_pct", 0.0)
-                if math.isnan(perf): perf = 0.0
-                
-                stocks_with_perf.append({"name": item["name"], "perf": perf})
-                shares = item.get("shares", 0)
-                if shares > 0:
-                    total_start += start_p * shares
-                    total_curr += curr_p * shares
-
-        if stocks_with_perf:
-            stocks_with_perf.sort(key=lambda x: x["perf"], reverse=True)
-            top_stock_name = stocks_with_perf[0]["name"]
-            top_stock_perf = round(stocks_with_perf[0]["perf"], 2)
-            flop_stock_name = stocks_with_perf[-1]["name"]
-            flop_stock_perf = round(stocks_with_perf[-1]["perf"], 2)
-
-        if total_start > 0:
-            total_perf_pct = round(((total_curr - total_start) / total_start) * 100, 2)
-            total_profit_val = round(total_curr - total_start, 2)
+        flop_stock = depot_results.get("flop_stock", {})
+        flop_stock_name = flop_stock.get("name", "N/A")
+        flop_stock_perf = round(flop_stock.get("perf", 0.0), 2)
 
     # Template laden
     try:

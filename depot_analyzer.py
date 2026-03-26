@@ -413,7 +413,29 @@ WICHTIG: Nutze NUR <h3>, <p>, <ul>, <li> Tags! Verbotene Tags: <html>, <head>, <
 Nutze maximal simples Inline-Styling falls etwas hervorgehoben werden soll (zB <strong style="color: green">).
 """
     ai_html = call_gemini(prompt, api_key)
-    return summary_html, ai_html, total_current_value
+    
+    # Sanitisierte Metriken berechnen
+    total_perf_pct = 0.0
+    total_profit = 0.0
+    if has_shares and total_start_value > 0:
+        total_perf_pct = ((total_current_value - total_start_value) / total_start_value) * 100
+        total_profit = total_current_value - total_start_value
+    
+    # Sicherstellen dass keine NaN zurückgegeben werden
+    if math.isnan(total_perf_pct): total_perf_pct = 0.0
+    if math.isnan(total_profit): total_profit = 0.0
+    if math.isnan(total_current_value): total_current_value = 0.0
+
+    return {
+        "summary_html": summary_html,
+        "ai_html": ai_html,
+        "total_current_value": round(total_current_value, 2),
+        "total_start_value": round(total_start_value, 2),
+        "total_perf_pct": round(total_perf_pct, 2),
+        "total_profit": round(total_profit, 2),
+        "top_stock": best_stock,
+        "flop_stock": worst_stock
+    }
 
 def scout_opportunities(watchlist_data, config, api_key):
     """Lässt Gemini neue, unentdeckte Kauftipps generieren."""
@@ -577,18 +599,16 @@ def get_briefing_data(gemini_key):
         portfolio_data = fetch_market_data(portfolio_symbols)
         
         # KI Analyse
-        summary_html, portfolio_html, total_current_value = analyze_portfolio(portfolio_data, config, gemini_key)
+        analysis_results = analyze_portfolio(portfolio_data, config, gemini_key)
         
         # Historie/Chart
-        history_data = update_and_load_history(total_current_value)
+        history_data = update_and_load_history(analysis_results["total_current_value"])
         history_chart_url = generate_history_chart(history_data, return_url_only=True)
         
         return {
+            **analysis_results,
             "portfolio_data": portfolio_data,
             "portfolio_config": config,
-            "summary_html": summary_html,
-            "portfolio_html": portfolio_html,
-            "total_current_value": total_current_value,
             "history_chart_url": history_chart_url
         }
     except Exception as e:
