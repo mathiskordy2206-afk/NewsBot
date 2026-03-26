@@ -12,6 +12,7 @@ Ausgabekanäle: GitHub Issue oder E-Mail (SMTP).
 import os
 import sys
 import json
+import math
 import logging
 import smtplib
 import argparse
@@ -373,7 +374,20 @@ Antworte nur mit dem Text, keine Überschriften oder Formatierung.
         genai.configure(api_key=api_key)
         
         model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(prompt)
+        
+        # Safety Settings hinzufügen um Blocks bei Finanz-Begriffen zu vermeiden
+        from google.generativeai.types import HarmCategory, HarmBlockThreshold
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        
+        response = model.generate_content(prompt, safety_settings=safety_settings)
+        if not response.parts:
+            log.warning("⚠️  Leere Antwort vom Markt-Ausblick Modell (Safety Block?)")
+            return "Aktuell liegen keine signifikanten Marktanpassungen vor."
         return response.text
     except Exception as e:
         log.error(f"❌ Gemini API Fehler (Marktausblick): {e}")
@@ -586,13 +600,22 @@ def build_newsletter_html(
 
         for item in p_config:
             sym = item["symbol"]
-            if sym in p_data and "current_price" in p_data[sym]:
-                perf = p_data[sym]["performance_1w_pct"]
+            if sym in p_data and p_data[sym].get("current_price"):
+                curr_p = p_data[sym]["current_price"]
+                start_p = p_data[sym].get("start_price", curr_p)
+                
+                # Sanity Check gegen NaN/None
+                if curr_p is None or math.isnan(curr_p): continue
+                if start_p is None or math.isnan(start_p): start_p = curr_p
+                
+                perf = p_data[sym].get("performance_1w_pct", 0.0)
+                if math.isnan(perf): perf = 0.0
+                
                 stocks_with_perf.append({"name": item["name"], "perf": perf})
                 shares = item.get("shares", 0)
                 if shares > 0:
-                    total_start += p_data[sym]["start_price"] * shares
-                    total_curr += p_data[sym]["current_price"] * shares
+                    total_start += start_p * shares
+                    total_curr += curr_p * shares
 
         if stocks_with_perf:
             stocks_with_perf.sort(key=lambda x: x["perf"], reverse=True)
