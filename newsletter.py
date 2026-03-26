@@ -747,42 +747,24 @@ def main():
 
     # ── 5b. Depot-Analyse integrieren ──
     log.info("📈 Integriere Depot-Analyse...")
-    portfolio_config = depot_analyzer.load_portfolio()
-    portfolio_symbols = [item["symbol"] for item in portfolio_config.get("portfolio", [])]
-    portfolio_data = depot_analyzer.fetch_market_data(portfolio_symbols)
-    
-    # Depot-Analyse durchführen (gibt Summary-HTML, AI-Text und Gesamtwert zurück)
-    depot_summary_html, depot_ai_html, total_current_value = depot_analyzer.analyze_portfolio(
-        portfolio_data, portfolio_config, gemini_key
-    )
-    
-    # Historie updaten und Chart generieren
-    history_data = depot_analyzer.update_and_load_history(total_current_value)
-    history_chart_url = depot_analyzer.generate_history_chart(history_data)
-
-    # Depot-Daten für das Template-Rendering bündeln
-    depot_results = {
-        "summary_html": depot_summary_html,
-        "ai_html": depot_ai_html,
-        "total_current_value": total_current_value,
-        "history_chart_url": history_chart_url,
-        "portfolio_data": portfolio_data,
-        "portfolio_config": portfolio_config
-    }
+    # ── 5b. Depot-Daten für das Master-Briefing sammeln ──
+    log.info("📊 Sammle Depot-Daten für das Master-Briefing...")
+    depot_results = depot_analyzer.get_briefing_data(gemini_key)
 
     # ── 6. Newsletter zusammenbauen ──
+    # Markdown-Zusammenfassung (GitHub)
     newsletter = build_newsletter_markdown(gemini_result, claude_analysis, market_outlook)
-
-    log.info(f"📝 Newsletter generiert ({len(newsletter)} Zeichen)")
-
-    # ── 6b. Lokale Vorschau speichern ──
+    
+    # Lokale HTML-Vorschau generieren
     try:
         html_preview = build_newsletter_html(gemini_result, claude_analysis, market_outlook, depot_results)
         with open("newsletter_preview.html", "w", encoding="utf-8") as f:
             f.write(html_preview)
         log.info("💾 Lokale Vorschau unter 'newsletter_preview.html' gespeichert")
     except Exception as e:
-        log.warning(f"⚠️  Konnte lokale Vorschau nicht speichern: {e}")
+        log.warning(f"⚠️  Konnte lokale Vorschau nicht generieren: {e}")
+
+    log.info(f"📝 Newsletter generiert ({len(newsletter)} Zeichen)")
 
     # ── 7. Ausgabe ──
     success = False
@@ -801,7 +783,7 @@ def main():
             gemini_result=gemini_result,
             claude_analysis=claude_analysis,
             market_outlook=market_outlook,
-            depot_results=depot_results
+            depot_results=depot_results,
         ) or success
 
     if args.output == "stdout":

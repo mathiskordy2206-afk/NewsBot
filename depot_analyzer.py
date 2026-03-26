@@ -203,7 +203,7 @@ def update_and_load_history(total_current_value: float, history_file: str = "his
 
     return history
 
-def generate_history_chart(history: list, color="#0ea5e9"):
+def generate_history_chart(history: list, color="#0ea5e9", return_url_only=False):
     """Generiert einen Chart über den Depot-Verlauf als Base64-PNG."""
     if not history or len(history) < 2:
         return ""
@@ -569,6 +569,32 @@ def send_email(html_content, smtp_server="smtp.gmail.com", smtp_port=587):
         log.error(f"❌ Fehler beim E-Mail-Versand: {e}")
         return False
 
+def get_briefing_data(gemini_key):
+    """Sammelt alle für den Newsletter relevanten Depot-Daten."""
+    try:
+        config = load_portfolio()
+        portfolio_symbols = [item["symbol"] for item in config.get("portfolio", [])]
+        portfolio_data = fetch_market_data(portfolio_symbols)
+        
+        # KI Analyse
+        summary_html, portfolio_html, total_current_value = analyze_portfolio(portfolio_data, config, gemini_key)
+        
+        # Historie/Chart
+        history_data = update_and_load_history(total_current_value)
+        history_chart_url = generate_history_chart(history_data, return_url_only=True)
+        
+        return {
+            "portfolio_data": portfolio_data,
+            "portfolio_config": config,
+            "summary_html": summary_html,
+            "portfolio_html": portfolio_html,
+            "total_current_value": total_current_value,
+            "history_chart_url": history_chart_url
+        }
+    except Exception as e:
+        log.error(f"❌ Fehler beim Sammeln der Briefing-Daten: {e}")
+        return None
+
 # ─── 4. Main Workflow ─────────────────────────────────────────────────────────
 
 def main():
@@ -610,7 +636,8 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Kein E-Mail Versand")
-    args = parser.parse_args()
+    # Ignore unknown args when imported by newsletter.py
+    args, _ = parser.parse_known_args()
 
     if not args.dry_run:
         send_email(final_email_html)
