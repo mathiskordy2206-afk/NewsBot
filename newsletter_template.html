@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Briefing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0f172a;
+            --bg-card: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        header {
+            text-align: left;
+            padding-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-emerald));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .date {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .market-sentiment {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            margin-top: 10px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-blue);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border);
+            margin-left: 15px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 20px;
+        }
+
+        .perf-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .perf-up { color: var(--accent-emerald); }
+        .perf-down { color: var(--accent-rose); }
+
+        .sparkline-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .news-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .news-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: block;
+        }
+
+        .news-title:hover {
+            color: var(--accent-blue);
+        }
+
+        .news-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .deep-dive {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .outlook {
+            background: #0f172a;
+            border: 1px dashed var(--accent-blue);
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        @media screen and (max-width: 600px) {
+            .portfolio-grid { grid-template-columns: 1fr; }
+            .container { margin: 20px auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div class="brand">MASTER BRIEFING</div>
+                <div class="date">{{ date }}</div>
+            </div>
+            <div class="market-sentiment">
+                {{ sentiment_icon }} Markt: {{ sentiment_label }}
+            </div>
+        </header>
+
+        <!-- PORTFOLIO SNIPPET -->
+        <div class="section-title">Portfolio Intelligence</div>
+        <div class="card">
+            <div class="portfolio-grid">
+                <div>
+                    <div class="news-meta">GESAMT-PERFORMANCE (1W)</div>
+                    <div class="perf-value {{ total_perf_class }}">{{ total_perf_sign }}{{ total_perf_pct }}%</div>
+                    <div style="font-size: 14px; color: var(--text-secondary);">{{ total_profit_sign }}{{ total_profit_val }} €</div>
+                </div>
+                <div style="text-align: right;">
+                    <img src="{{ history_chart }}" alt="Depot Verlauf" class="sparkline-img" />
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; gap: 10px;">
+                <div style="flex: 1; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                    <div style="font-size: 10px; color: var(--text-secondary);">TOP PERFORMER</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--accent-emerald);">{{ top_stock_name }} (+{{ top_stock_perf }}%)</div>
+                </div>
+                <div style="flex: 1; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                    <div style="font-size: 10px; color: var(--text-secondary);">UNDERPERFORMER</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--accent-rose);">{{ flop_stock_name }} ({{ flop_stock_perf }}%)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEWS TICKER -->
+        <div class="section-title">Market Headlines</div>
+        <div class="card">
+            {% for h in headlines %}
+            <div class="news-item">
+                <div class="news-meta">
+                    <span>{{ h.source }}</span>
+                    <span>1W Ticker</span>
+                </div>
+                <a href="{{ h.link }}" class="news-title">{{ h.title }}</a>
+                <div style="font-size: 14px; color: var(--text-secondary);">{{ h.summary }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- DEEP DIVE -->
+        {% if deep_dives %}
+        <div class="section-title">Analyst Deep Dive</div>
+        {% for dd in deep_dives %}
+        <div class="card deep-dive">
+            <div class="news-meta">FOKUS-THEMA</div>
+            <a href="{{ dd.link }}" class="news-title">{{ dd.title }}</a>
+            <p style="font-size: 15px; color: var(--text-primary); margin-top: 12px;">{{ dd.analysis }}</p>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- CLAUDE ANALYSIS -->
+        {% if claude_analysis %}
+        <div class="section-title">Intelligence Report</div>
+        <div class="card" style="border: 1px solid var(--accent-emerald); background: rgba(16, 185, 129, 0.05);">
+            <div class="news-meta" style="color: var(--accent-emerald);">KI-ANALYSE: SIGNIFIKANTE BEWEGUNG</div>
+            <div style="font-size: 15px; line-height: 1.7;">{{ claude_analysis }}</div>
+        </div>
+        {% endif %}
+
+        <!-- MARKET OUTLOOK -->
+        <div class="section-title">The Outlook</div>
+        <div class="card outlook">
+            {{ market_outlook }}
+        </div>
+
+        <footer>
+            <div style="font-weight: 700; margin-bottom: 8px;">NEWSBOT PREMIUM v2.0</div>
+            <div>Generated with Gemini 2.0 Flash & Claude 3.5 Sonnet</div>
+            <div style="margin-top: 20px; opacity: 0.5;">
+                Diese Informationen dienen nur zu Informationszwecken und stellen keine Anlageberatung dar.
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

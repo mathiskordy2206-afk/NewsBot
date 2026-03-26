@@ -25,6 +25,7 @@ from difflib import SequenceMatcher
 import yaml
 import requests
 import feedparser
+import depot_analyzer
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,7 @@ def call_gemini(prompt: str, api_key: str) -> str:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
@@ -181,7 +182,7 @@ def call_claude(prompt: str, api_key: str) -> str:
 
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-3-5-sonnet-latest",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -250,7 +251,7 @@ WICHTIG:
         
         # System instructions parameter doesn't exist in early generativeai versions,
         # so we prepend the instructions to the prompt
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         response_text = response.text
     except Exception as e:
@@ -371,7 +372,7 @@ Antworte nur mit dem Text, keine Überschriften oder Formatierung.
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
@@ -538,246 +539,104 @@ def build_newsletter_html(
     gemini_result: dict,
     claude_analysis: str,
     market_outlook: str,
+    depot_results: dict = None,
 ) -> str:
-    """Baut den Newsletter als professionelle HTML-E-Mail."""
+    """Baut den Newsletter als professionelle HTML-E-Mail unter Verwendung einer Vorlage."""
+    import jinja2
+    from datetime import datetime, timezone, timedelta
+
     now = datetime.now(timezone(timedelta(hours=1)))
-    date_str = now.strftime("%d.%m.%Y")
+    date_str = now.strftime("%d. %B %Y")
+    # Deutsche Monatsnamen
     months_de = {
         "January": "Januar", "February": "Februar", "March": "März",
         "April": "April", "May": "Mai", "June": "Juni",
         "July": "Juli", "August": "August", "September": "September",
         "October": "Oktober", "November": "November", "December": "Dezember",
     }
-    long_date = now.strftime("%d. %B %Y")
     for en, de in months_de.items():
-        long_date = long_date.replace(en, de)
-    weekdays_de = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
-    weekday = weekdays_de[now.weekday()]
+        date_str = date_str.replace(en, de)
 
     sentiment = gemini_result.get("market_sentiment", "neutral")
-    sentiment_config = {
-        "bullish": {"label": "Bullish", "color": "#10b981", "bg": "#ecfdf5", "icon": "🟢"},
-        "bearish": {"label": "Bearish", "color": "#ef4444", "bg": "#fef2f2", "icon": "🔴"},
-        "neutral": {"label": "Neutral", "color": "#f59e0b", "bg": "#fffbeb", "icon": "🟡"},
-    }.get(sentiment, {"label": "Neutral", "color": "#f59e0b", "bg": "#fffbeb", "icon": "🟡"})
+    sentiment_icons = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}
+    sentiment_labels = {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "NEUTRAL"}
 
-    def short_source(link, source_name):
-        """Erzeugt einen kurzen, klickbaren Quellen-Link (nur der Name ist klickbar)."""
-        if link:
-            return f'<a href="{link}" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:bold;">Quelle: {source_name} &rarr;</a>'
-        return f'<span style="color:#64748b;font-weight:bold;">Quelle: {source_name}</span>'
+    # Depot-Daten vorbereiten
+    total_perf_pct = 0.0
+    total_profit_val = 0.0
+    top_stock_name = "N/A"
+    top_stock_perf = 0.0
+    flop_stock_name = "N/A"
+    flop_stock_perf = 0.0
+    history_chart = ""
 
-    # ── Headlines bauen ──
-    headlines_html = ""
-    for i, h in enumerate(gemini_result.get("headlines", []), 1):
-        title = h["title"]
-        link = h.get("link", "")
-        summary = h.get("summary", "")
-        source = h.get("source", "")
+    if depot_results:
+        # Hier könnten wir noch tiefer in die portfolio_data greifen um top/flop zu bestimmen
+        # Oder wir nutzen die Summary-Logic aus depot_analyzer
+        # Für den Moment extrahieren wir die Key-Metriken:
+        history_chart = depot_results.get("history_chart_url", "")
         
-        # Make the title itself a link if available, otherwise just text
-        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
+        # Top/Flop Berechnung (vereinfacht für das Template)
+        p_data = depot_results.get("portfolio_data", {})
+        p_config = depot_results.get("portfolio_config", {}).get("portfolio", [])
         
-        headlines_html += f"""
-        <tr>
-            <td style="padding:15px 0;border-bottom:1px solid #e2e8f0;">
-                <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                        <td width="30" valign="top">
-                            <table width="24" height="24" cellpadding="0" cellspacing="0" border="0" style="background-color:#4f46e5;border-radius:12px;">
-                                <tr><td align="center" valign="middle" style="color:#ffffff;font-size:12px;font-weight:bold;line-height:24px;">{i}</td></tr>
-                            </table>
-                        </td>
-                        <td valign="top" style="padding-left:10px;">
-                            <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:bold;line-height:1.4;">{title_html}</h3>
-                            <p style="margin:0 0 8px 0;font-size:14px;color:#475569;line-height:1.5;">{summary}</p>
-                            <p style="margin:0;font-size:13px;">{short_source(link, source)}</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>"""
+        stocks_with_perf = []
+        total_start = 0.0
+        total_curr = 0.0
 
-    if not headlines_html:
-        headlines_html = '<tr><td style="padding:15px 0;color:#64748b;font-style:italic;">Keine Headlines gefunden.</td></tr>'
+        for item in p_config:
+            sym = item["symbol"]
+            if sym in p_data and "current_price" in p_data[sym]:
+                perf = p_data[sym]["performance_1w_pct"]
+                stocks_with_perf.append({"name": item["name"], "perf": perf})
+                shares = item.get("shares", 0)
+                if shares > 0:
+                    total_start += p_data[sym]["start_price"] * shares
+                    total_curr += p_data[sym]["current_price"] * shares
 
-    # ── Deep Dives bauen ──
-    deep_dives_html = ""
-    for dd in gemini_result.get("deep_dives", []):
-        title = dd["title"]
-        link = dd.get("link", "")
-        analysis = dd.get("analysis", dd.get("summary", ""))
-        source = dd.get("source", "")
-        
-        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
-        
-        deep_dives_html += f"""
-        <tr>
-            <td style="padding:20px;background-color:#f8fafc;border-left:4px solid #4f46e5;margin-bottom:15px;display:block;">
-                <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;line-height:1.3;">{title_html}</h3>
-                <p style="margin:0 0 12px 0;font-size:15px;color:#334155;line-height:1.6;">{analysis}</p>
-                <p style="margin:0;font-size:13px;">{short_source(link, source)}</p>
-            </td>
-        </tr>"""
+        if stocks_with_perf:
+            stocks_with_perf.sort(key=lambda x: x["perf"], reverse=True)
+            top_stock_name = stocks_with_perf[0]["name"]
+            top_stock_perf = round(stocks_with_perf[0]["perf"], 2)
+            flop_stock_name = stocks_with_perf[-1]["name"]
+            flop_stock_perf = round(stocks_with_perf[-1]["perf"], 2)
 
-    if not deep_dives_html:
-        deep_dives_html = '<tr><td style="padding:15px;color:#64748b;font-style:italic;">Heute keine signifikanten Finanz-Themen für einen Deep Dive.</td></tr>'
+        if total_start > 0:
+            total_perf_pct = round(((total_curr - total_start) / total_start) * 100, 2)
+            total_profit_val = round(total_curr - total_start, 2)
 
-    # ── Claude Analysis ──
-    claude_html = ""
-    if claude_analysis:
-        claude_html = f"""
-        <tr>
-            <td style="padding:20px;background-color:#fffbeb;border:1px solid #f59e0b;border-radius:8px;margin-top:20px;display:block;">
-                <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                        <td width="24" valign="top" style="font-size:20px;">🧠</td>
-                        <td valign="top" style="padding-left:10px;">
-                            <h4 style="margin:0 0 10px 0;font-size:16px;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Deep Analysis – Signifikantes Event</h4>
-                            <div style="font-size:15px;color:#78350f;line-height:1.6;">{claude_analysis}</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>"""
+    # Template laden
+    try:
+        template_path = os.path.join(os.path.dirname(__file__), "newsletter_template.html")
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_content = f.read()
+    except Exception as e:
+        log.error(f"❌ Vorlage konnte nicht geladen werden: {e}")
+        return f"<html><body><h1>Fehler beim Laden der Vorlage</h1><pre>{market_outlook}</pre></body></html>"
 
-    # ── Wirtschaft Kompakt ──
-    wirtschaft_html = ""
-    for w in gemini_result.get("wirtschaft_kompakt", []):
-        title = w["title"]
-        summary = w.get("summary", "")
-        link = w.get("link", "")
-        source = w.get("source", "Diverse")
-        
-        title_html = f'<a href="{link}" target="_blank" style="color:#0f172a;text-decoration:none;">{title}</a>' if link else f'<span style="color:#0f172a;">{title}</span>'
-        
-        wirtschaft_html += f"""
-        <tr>
-            <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                <p style="margin:0 0 6px 0;font-size:15px;line-height:1.4;"><strong>{title_html}</strong> - <span style="color:#475569;">{summary}</span></p>
-                <p style="margin:0;font-size:13px;">{short_source(link, source.upper())}</p>
-            </td>
-        </tr>"""
+    template = jinja2.Template(template_content)
+    
+    render_data = {
+        "date": date_str,
+        "sentiment_icon": sentiment_icons.get(sentiment, "🟡"),
+        "sentiment_label": sentiment_labels.get(sentiment, "NEUTRAL"),
+        "total_perf_pct": total_perf_pct,
+        "total_perf_sign": "+" if total_perf_pct >= 0 else "",
+        "total_perf_class": "perf-up" if total_perf_pct >= 0 else "perf-down",
+        "total_profit_val": total_profit_val,
+        "total_profit_sign": "+" if total_profit_val >= 0 else "",
+        "history_chart": history_chart,
+        "top_stock_name": top_stock_name,
+        "top_stock_perf": top_stock_perf,
+        "flop_stock_name": flop_stock_name,
+        "flop_stock_perf": flop_stock_perf,
+        "headlines": gemini_result.get("headlines", []),
+        "deep_dives": gemini_result.get("deep_dives", []),
+        "claude_analysis": claude_analysis,
+        "market_outlook": market_outlook
+    }
 
-    if not wirtschaft_html:
-        wirtschaft_html = '<tr><td style="padding:15px 0;color:#64748b;font-style:italic;">Keine Kurzmeldungen verfügbar.</td></tr>'
-
-    # ── Marktausblick ──
-    outlook_html = market_outlook if market_outlook else "Derzeit kein KI-Marktausblick verfügbar."
-
-    # ── Gesamtes HTML zusammenbauen (Tabellen-Layout für E-Mail-Clients) ──
-    html = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="de">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NewsBot Finanz-Briefing</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif,-apple-system;">
-<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f1f5f9">
-    <tr>
-        <td align="center" style="padding:40px 15px;">
-            
-            <!-- MAIN CONTAINER -->
-            <table width="100%" max-width="650" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="max-width:650px;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.05);border:1px solid #e2e8f0;">
-                
-                <!-- HEADER -->
-                <tr>
-                    <td bgcolor="#1e293b" style="padding:40px 30px;background-color:#1e293b;">
-                        <h1 style="margin:0 0 5px 0;color:#ffffff;font-size:28px;letter-spacing:-0.5px;">Dein Finanz-Briefing</h1>
-                        <p style="margin:0 0 20px 0;color:#94a3b8;font-size:16px;">{weekday}, {long_date}</p>
-                        
-                        <table border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td bgcolor="{sentiment_config['bg']}" style="padding:6px 16px;border-radius:30px;font-size:14px;font-weight:bold;color:{sentiment_config['color']};">
-                                    {sentiment_config['icon']} Marktstimmung: {sentiment_config['label'].upper()}
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                
-                <!-- SECTION: HEADLINES -->
-                <tr>
-                    <td style="padding:35px 30px 15px 30px;">
-                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">📰 Top Headlines</h2>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:0 30px;">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            {headlines_html}
-                        </table>
-                    </td>
-                </tr>
-                
-                <!-- SECTION: DEEP DIVE -->
-                <tr>
-                    <td style="padding:35px 30px 15px 30px;">
-                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">🏦 Deep Dive Analysten-Blick</h2>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:0 30px;">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            {deep_dives_html}
-                            {claude_html}
-                        </table>
-                    </td>
-                </tr>
-                
-                <!-- SECTION: WIRTSCHAFT KOMPAKT -->
-                <tr>
-                    <td style="padding:35px 30px 15px 30px;">
-                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">⚡ Kurzmeldungen Wirtschaft</h2>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:0 30px;">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            {wirtschaft_html}
-                        </table>
-                    </td>
-                </tr>
-                
-                <!-- SECTION: OUTLOOK -->
-                <tr>
-                    <td style="padding:35px 30px 15px 30px;">
-                        <h2 style="margin:0;color:#4f46e5;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #e0e7ff;padding-bottom:10px;">🔮 KI-Marktausblick</h2>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:0 30px 40px 30px;">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f8fafc" style="border-radius:8px;">
-                            <tr>
-                                <td style="padding:25px;font-size:15px;color:#334155;line-height:1.6;">
-                                    {outlook_html}
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                
-                <!-- FOOTER -->
-                <tr>
-                    <td bgcolor="#f8fafc" style="padding:25px 30px;border-top:1px solid #e2e8f0;text-align:center;">
-                        <p style="margin:0 0 10px 0;font-size:13px;color:#64748b;">
-                            Newsletter generiert am <strong>{long_date}</strong> um <strong>{now.strftime('%H:%M')} Uhr MEZ</strong>
-                        </p>
-                        <p style="margin:0;font-size:12px;color:#94a3b8;">
-                            Powered by <a href="https://github.com/mathiskordy/NewsBot" style="color:#4f46e5;text-decoration:none;">NewsBot</a> &bull; Gemini 2.5 Flash &amp; Claude Opus
-                        </p>
-                    </td>
-                </tr>
-                
-            </table>
-        </td>
-    </tr>
-</table>
-</body>
-</html>"""
-
-    return html
+    return template.render(**render_data)
 
 
 def send_email(
@@ -785,6 +644,7 @@ def send_email(
     gemini_result: dict = None,
     claude_analysis: str = "",
     market_outlook: str = "",
+    depot_results: dict = None,
     smtp_server: str = "smtp.gmail.com",
     smtp_port: int = 587,
 ) -> bool:
@@ -811,7 +671,7 @@ def send_email(
 
     # HTML-Version (professionell gestylt) – wird immer angehängt
     if gemini_result:
-        html_content = build_newsletter_html(gemini_result, claude_analysis, market_outlook)
+        html_content = build_newsletter_html(gemini_result, claude_analysis, market_outlook, depot_results)
     else:
         # Minimales HTML-Fallback aus Markdown
         html_content = f"<html><body><pre>{markdown}</pre></body></html>"
@@ -885,10 +745,44 @@ def main():
     # ── 5. Marktausblick generieren ──
     market_outlook = generate_market_outlook(gemini_result, gemini_key)
 
+    # ── 5b. Depot-Analyse integrieren ──
+    log.info("📈 Integriere Depot-Analyse...")
+    portfolio_config = depot_analyzer.load_portfolio()
+    portfolio_symbols = [item["symbol"] for item in portfolio_config.get("portfolio", [])]
+    portfolio_data = depot_analyzer.fetch_market_data(portfolio_symbols)
+    
+    # Depot-Analyse durchführen (gibt Summary-HTML, AI-Text und Gesamtwert zurück)
+    depot_summary_html, depot_ai_html, total_current_value = depot_analyzer.analyze_portfolio(
+        portfolio_data, portfolio_config, gemini_key
+    )
+    
+    # Historie updaten und Chart generieren
+    history_data = depot_analyzer.update_and_load_history(total_current_value)
+    history_chart_url = depot_analyzer.generate_history_chart(history_data)
+
+    # Depot-Daten für das Template-Rendering bündeln
+    depot_results = {
+        "summary_html": depot_summary_html,
+        "ai_html": depot_ai_html,
+        "total_current_value": total_current_value,
+        "history_chart_url": history_chart_url,
+        "portfolio_data": portfolio_data,
+        "portfolio_config": portfolio_config
+    }
+
     # ── 6. Newsletter zusammenbauen ──
     newsletter = build_newsletter_markdown(gemini_result, claude_analysis, market_outlook)
 
     log.info(f"📝 Newsletter generiert ({len(newsletter)} Zeichen)")
+
+    # ── 6b. Lokale Vorschau speichern ──
+    try:
+        html_preview = build_newsletter_html(gemini_result, claude_analysis, market_outlook, depot_results)
+        with open("newsletter_preview.html", "w", encoding="utf-8") as f:
+            f.write(html_preview)
+        log.info("💾 Lokale Vorschau unter 'newsletter_preview.html' gespeichert")
+    except Exception as e:
+        log.warning(f"⚠️  Konnte lokale Vorschau nicht speichern: {e}")
 
     # ── 7. Ausgabe ──
     success = False
@@ -907,6 +801,7 @@ def main():
             gemini_result=gemini_result,
             claude_analysis=claude_analysis,
             market_outlook=market_outlook,
+            depot_results=depot_results
         ) or success
 
     if args.output == "stdout":

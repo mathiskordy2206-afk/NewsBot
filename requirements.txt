@@ -4,3 +4,5 @@ pyyaml>=6.0
 requests>=2.31
 yfinance>=0.2.30
 matplotlib>=3.8.0
+anthropic>=0.20.0
+jinja2>=3.1.0

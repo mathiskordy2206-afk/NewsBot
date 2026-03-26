@@ -261,7 +261,7 @@ def call_gemini(prompt: str, api_key: str) -> str:
 
         full_prompt = "Du bist ein hochkarätiger, professioneller Portfolio-Manager und Investment-Analyst. Du erklärst komplexe Marktbewegungen präzise, quantitativ belegt und dennoch verständlich.\n\n" + prompt
 
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(full_prompt)
         return response.text
     except Exception as e:
@@ -615,7 +615,7 @@ def main():
     if not args.dry_run:
         send_email(final_email_html)
     else:
-        log.info("🏃 Dry-Run beendet. Keine E-Mail gesendet.")
+        log.info("🏃 Dry-Run beendet. Keine E-Mail gesendet. Report unter 'depot_report.html' gespeichert.")
 
 if __name__ == "__main__":
     main()
