@@ -94,9 +94,9 @@ def generate_report(articles, market_data, api_key):
     now = datetime.now()
     time_greeting = "Morgen" if now.hour < 12 else "Abend"
     
-    # Formatiere das Markdown
+    # Formatiere das Markdown mit Erwähnung für E-Mail-Benachrichtigung
     md = f"## 📰 Daily News Briefing ({now.strftime('%d.%m.%Y, %H:%M')})\n\n"
-    md += f"Guten {time_greeting}! Hier ist dein Finanz-Briefing.\n\n"
+    md += f"@mathiskordy2206-afk Guten {time_greeting}! Hier ist dein Finanz-Briefing.\n\n"
     md += f"### 📊 Markt-Snapshot\n{market_data}\n\n"
     md += f"**Marktstimmung:** {data.get('sentiment', 'Neutral')}\n\n"
     
