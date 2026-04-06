@@ -8,26 +8,15 @@ import requests
 from google import genai
 from pydantic import BaseModel, Field
 
-# Model schemas for structured output
-class GeneralRelease(BaseModel):
-    title: str = Field(description="Titel des neuen Produkt- oder Modell-Releases auf Deutsch")
-    summary: str = Field(description="Was EXAKT ist neu? Funktionen, Updates oder Launches der letzten Tage.")
-    link: str = Field(description="URL der Quelle")
-
-class StudentHack(BaseModel):
-    title: str = Field(description="Titel des Tools oder des Hacks")
-    hack_description: str = Field(description="Konkretes neues Feature oder Tool-Update für Studenten und wie man es einsetzen kann.")
-    link: str = Field(description="URL der Quelle")
-
-class FinanceAI(BaseModel):
-    title: str = Field(description="Titel der Entwicklung")
-    finance_impact: str = Field(description="Konkreter Anwendungsfall oder neues Tool-Announcement für Banken/Analysten.")
-    link: str = Field(description="URL der Quelle")
+class AIRelease(BaseModel):
+    title: str = Field(description="Name des neuen Tools, Modells oder Features")
+    short_description: str = Field(description="Was genau ist in den letzten Tagen erschienen? (Was ist neu?)")
+    new_features: str = Field(description="Was kann das Tool konkret? (Welche Features bietet es?)")
+    use_case: str = Field(description="Wofür wird das in der Praxis (Beruf, Studium, Alltag) gebraucht?")
+    link: str = Field(description="URL der News-Quelle")
 
 class DailyAISummary(BaseModel):
-    general_releases: list[GeneralRelease] = Field(description="Maximal 4 handfeste neue KI-Releases oder App-Updates (kein Generisches Blabla)")
-    student_hacks: list[StudentHack] = Field(description="Maximal 3 Must-Haves/Hacks für Studenten")
-    finance_ai: list[FinanceAI] = Field(description="Maximal 3 echte neue Use-Cases/Tools für die Finanzwelt")
+    recent_releases: list[AIRelease] = Field(description="Die 5 bis 7 absolut wichtigsten, echten Releases und konkreten KI-Updates der letzten Tage")
 
 def load_feeds():
     """Lade die konfigurierten KI-Feeds."""
@@ -60,14 +49,15 @@ def generate_report(articles, api_key):
     print("Analysiere KI Daten mit Gemini...")
     client = genai.Client(api_key=api_key)
     
-    news_text = "\n".join(articles[:60]) # Increase context
-    prompt = f"""Du bist ein Tech & Finance Analyst. Analysiere die folgenden aktuellsten KI-Nachrichten.
-    WICHTIGSTE REGEL: Ignoriere allgemeines philosophisches KI-Gerede, Meinungen oder abstrakte Konzepte.
-    Extrahiere AUSSCHLIESSLICH explizite Tool-Releases, Update-Ankündigungen, neue KI-Modelle, oder handfeste neue Features, die im letzten Zeitraum veröffentlicht wurden! Der Nutzer darf nichts verpassen!
+    prompt = f"""Du bist ein Analyst für künstliche Intelligenz. Analysiere die folgenden aktuellsten Nachrichten.
+    Wir suchen AUSSCHLIESSLICH nach echten, brandneuen Releases der letzten Tage: neue Tools, neue KI-Modelle, oder große neue Features bestehender Softwares.
+    Ignoriere kategorisch alles, was nur philosophische Debatten, Meinungen, Prognosen oder allgemeine Diskussionen sind.
     
-    1. Finde die besten neuen Tool/Modell-Releases (Allgemein).
-    2. Finde explizit neue Tools und Update-Funktionen, die JETZT für das Studium/Studenten nutzbar sind.
-    3. Finde Berichte über konkrete neue KI-Anwendungen, Plugins oder Plattformen in der Finanzwelt (Banking, Trading, Research).
+    Für jedes echte Release, extrahiere:
+    - Den genauen Namen
+    - Was exakt neu erschienen ist.
+    - Was das Tool/Modell technisch kann.
+    - Wofür ein Mensch (Beruf, Studium, Alltag) dieses Tool konkret braucht.
     
     NACHRICHTEN:
     {news_text}
@@ -86,26 +76,21 @@ def generate_report(articles, api_key):
     data = json.loads(response.text)
     now = datetime.now()
     
-    md = f"## 🤖 Bi-Weekly AI & Future Briefing ({now.strftime('%d.%m.%Y')})\n\n"
-    md += f"@mathiskordy2206-afk Hier sind die neuesten echten Tool-Releases und Modell-Updates der letzten Tage!\n\n"
+    md = f"## 🤖 AI Release Radar ({now.strftime('%d.%m.%Y')})\n\n"
+    md += f"@mathiskordy2206-afk Hier ist dein Digest der brandheißesten KI-Releases der letzten Tage!\n\n"
     
-    md += "### 🎓 Neue Tools & Hacks fürs Studium\n"
-    if not data.get('student_hacks'):
-        md += "_Keine relevanten neuen Studientools in den letzten Tagen._\n\n"
-    for h in data.get('student_hacks', []):
-        md += f"- **[{h['title']}]({h['link']})**\n  💡 *Neuheit:* {h['hack_description']}\n\n"
+    releases = data.get('recent_releases', [])
+    if not releases:
+        md += "_In den analysierten Quellen wurden keine konkreten Tool-Releases für die letzten Tage gefunden._\n\n"
+    
+    for r in releases:
+        md += f"### 🔥 [{r['title']}]({r['link']})\n"
+        md += f"**Was ist neu?** {r['short_description']}\n\n"
+        md += f"**Was kann es?** {r['new_features']}\n\n"
+        md += f"**Wofür braucht man es?** {r['use_case']}\n\n"
+        md += "---\n"
         
-    md += "### 💼 KI Releases im Finance-Sektor\n"
-    if not data.get('finance_ai'):
-        md += "_Keine handfesten neuen Tools im Finance-Sektor gefunden._\n\n"
-    for f in data.get('finance_ai', []):
-        md += f"- **[{f['title']}]({f['link']})**\n  📈 *Finance Impact:* {f['finance_impact']}\n\n"
-
-    md += "### 🚀 Weltweite Tool & Modell Updates\n"
-    for g in data.get('general_releases', []):
-        md += f"- **[{g['title']}]({g['link']})**\n  {g['summary']}\n\n"
-        
-    md += "---\n*Generiert mit DailyNewsAgent - AI Module*"
+    md += "\n*Generiert mit DailyNewsAgent - AI Release Module*"
     
     return md
 
