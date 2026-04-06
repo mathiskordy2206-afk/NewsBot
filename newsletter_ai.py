@@ -49,6 +49,7 @@ def generate_report(articles, api_key):
     print("Analysiere KI Daten mit Gemini...")
     client = genai.Client(api_key=api_key)
     
+    news_text = "\n".join(articles[:60]) # Compile articles into text
     prompt = f"""Du bist ein Analyst für künstliche Intelligenz. Analysiere die folgenden aktuellsten Nachrichten.
     Wir suchen AUSSCHLIESSLICH nach echten, brandneuen Releases der letzten Tage: neue Tools, neue KI-Modelle, oder große neue Features bestehender Softwares.
     Ignoriere kategorisch alles, was nur philosophische Debatten, Meinungen, Prognosen oder allgemeine Diskussionen sind.
