@@ -1,0 +1,9 @@
+feeds:
+  - name: "Google News: AI & Finance"
+    url: "https://news.google.com/rss/search?q=Artificial+Intelligence+Finance+OR+Generative+AI+Banking&hl=en"
+  - name: "Google News: AI Student Tools"
+    url: "https://news.google.com/rss/search?q=KI+Studium+OR+ChatGPT+Campus+OR+AI+Learning+Tools&hl=de"
+  - name: "The Verge: AI"
+    url: "https://www.theverge.com/rss/artificial-intelligence/index.xml"
+  - name: "Wired: AI"
+    url: "https://www.wired.com/feed/category/ai/latest/rss"
