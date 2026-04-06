@@ -1,0 +1,36 @@
+name: "📰 Daily Newsletter Action"
+
+on:
+  schedule:
+    # 05:00 UTC = 07:00 MEZ (Morgens um 7)
+    - cron: "0 5 * * *"
+    # 20:30 UTC = 22:30 MEZ (Abends nach US-Börsenschluss)
+    - cron: "30 20 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-newsletter:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Run Newsletter Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python newsletter.py

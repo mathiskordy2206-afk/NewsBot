@@ -1,0 +1,9 @@
+feeds:
+  - name: "Reuters World"
+    url: "https://news.google.com/rss/search?q=site:reuters.com+world&hl=en"
+  - name: "Bloomberg Finance"
+    url: "https://feeds.bloomberg.com/markets/news.rss"
+  - name: "Handelsblatt Finanzen"
+    url: "https://news.google.com/rss/search?q=site:handelsblatt.com+finanzen&hl=de"
+  - name: "Yahoo Finance"
+    url: "https://finance.yahoo.com/news/rssindex"
